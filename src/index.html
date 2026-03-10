@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deplomot</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar / Results Panel -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-section">
+          <div class="logo-icon-small">
+            <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+              <rect width="48" height="48" rx="12" fill="url(#gradS)"/>
+              <path d="M14 20L22 14V22L14 28V20Z" fill="white" opacity="0.9"/>
+              <path d="M26 20L34 14V22L26 28V20Z" fill="white" opacity="0.7"/>
+              <path d="M14 30L22 24V32L14 38V30Z" fill="white" opacity="0.5"/>
+              <defs>
+                <linearGradient id="gradS" x1="0" y1="0" x2="48" y2="48">
+                  <stop offset="0%" stop-color="#6c63ff"/>
+                  <stop offset="100%" stop-color="#a855f7"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div>
+            <h2 class="sidebar-title">Deplomot</h2>
+            <span class="version">v1.0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Section -->
+      <div class="sidebar-section" id="status-section" style="display: none;">
+        <h3 class="section-title">Status</h3>
+        <div class="status-card" id="status-card">
+          <div class="status-indicator" id="status-indicator">
+            <div class="status-dot" id="status-dot"></div>
+            <span id="status-text">Idle</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Section -->
+      <div class="sidebar-section" id="summary-section" style="display: none;">
+        <h3 class="section-title">Summary</h3>
+        <div class="summary-card" id="summary-card">
+          <p id="summary-text"></p>
+        </div>
+      </div>
+
+      <!-- Files Section -->
+      <div class="sidebar-section" id="files-section" style="display: none;">
+        <h3 class="section-title">Files Created</h3>
+        <div class="files-list" id="files-list"></div>
+      </div>
+
+      <!-- Actions Section -->
+      <div class="sidebar-section" id="actions-section" style="display: none;">
+        <h3 class="section-title">Actions</h3>
+        <div class="actions-buttons">
+          <button class="action-btn" id="btn-open-preview" title="Open Preview">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 3C4.5 3 1.5 5.5 0.5 8c1 2.5 4 5 7.5 5s6.5-2.5 7.5-5c-1-2.5-4-5-7.5-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5S6.07 4.5 8 4.5s3.5 1.57 3.5 3.5S9.93 11.5 8 11.5zm0-5.5C7.17 6 6.5 6.67 6.5 7.5S7.17 9 8 9s1.5-.67 1.5-1.5S8.83 6 8 6z"/>
+            </svg>
+            Preview
+          </button>
+          <button class="action-btn" id="btn-open-folder" title="Open Project Folder">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M1.5 2A1.5 1.5 0 000 3.5v9A1.5 1.5 0 001.5 14h13a1.5 1.5 0 001.5-1.5V5a1.5 1.5 0 00-1.5-1.5H7.71l-1.6-1.2A1.5 1.5 0 005.21 2H1.5z"/>
+            </svg>
+            Open Folder
+          </button>
+          <button class="action-btn danger" id="btn-stop-server" title="Stop Server">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <rect x="3" y="3" width="10" height="10" rx="2"/>
+            </svg>
+            Stop
+          </button>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="sidebar-footer">
+        <button class="settings-btn" id="btn-settings" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 4.754a3.246 3.246 0 100 6.492 3.246 3.246 0 000-6.492zM5.754 8a2.246 2.246 0 114.492 0 2.246 2.246 0 01-4.492 0z"/>
+            <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 01-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 01-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 01.52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 011.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 011.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 01.52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 01-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 01-1.255-.52l-.094-.319z"/>
+          </svg>
+          Settings
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Hero / Input State -->
+      <div class="hero-section" id="hero-section">
+        <div class="hero-logo">
+          <svg width="72" height="72" viewBox="0 0 48 48" fill="none">
+            <rect width="48" height="48" rx="12" fill="url(#gradM)"/>
+            <path d="M14 20L22 14V22L14 28V20Z" fill="white" opacity="0.9"/>
+            <path d="M26 20L34 14V22L26 28V20Z" fill="white" opacity="0.7"/>
+            <path d="M14 30L22 24V32L14 38V30Z" fill="white" opacity="0.5"/>
+            <defs>
+              <linearGradient id="gradM" x1="0" y1="0" x2="48" y2="48">
+                <stop offset="0%" stop-color="#6c63ff"/>
+                <stop offset="100%" stop-color="#a855f7"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <h1 class="hero-title">Deplomot</h1>
+        <p class="hero-subtitle">Paste your code. Get a working website.</p>
+
+        <div class="code-input-container">
+          <div class="textarea-header">
+            <div class="textarea-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <span class="textarea-label">Paste your code here</span>
+            <button class="clear-btn" id="btn-clear" title="Clear">✕</button>
+          </div>
+          <textarea 
+            id="code-input" 
+            placeholder="Paste ALL the code you got from ChatGPT, Claude, or any AI tool here...
+
+It can be HTML, CSS, JavaScript, Python, Node.js, React — anything!
+
+Deplomot will figure out what goes where and build it for you."
+            spellcheck="false"
+          ></textarea>
+          <div class="textarea-footer">
+            <span class="char-count" id="char-count">0 characters</span>
+          </div>
+        </div>
+
+        <button class="run-button" id="btn-run">
+          <span class="btn-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M6 4l10 6-10 6V4z"/>
+            </svg>
+          </span>
+          <span class="btn-text" id="run-btn-text">Analyze & Run</span>
+          <span class="btn-loader" id="run-btn-loader" style="display: none;">
+            <svg class="spinner" width="20" height="20" viewBox="0 0 20 20">
+              <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="50" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </button>
+
+        <p class="hint-text">Works with code from ChatGPT, Claude, Gemini, Copilot, and more</p>
+      </div>
+
+      <!-- Loading / Status State -->
+      <div class="loading-section" id="loading-section" style="display: none;">
+        <div class="loading-animation">
+          <div class="loading-orbit">
+            <div class="orbit-dot"></div>
+          </div>
+          <div class="loading-center-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <rect width="48" height="48" rx="12" fill="url(#gradL)"/>
+              <path d="M14 20L22 14V22L14 28V20Z" fill="white" opacity="0.9"/>
+              <path d="M26 20L34 14V22L26 28V20Z" fill="white" opacity="0.7"/>
+              <path d="M14 30L22 24V32L14 38V30Z" fill="white" opacity="0.5"/>
+              <defs>
+                <linearGradient id="gradL" x1="0" y1="0" x2="48" y2="48">
+                  <stop offset="0%" stop-color="#6c63ff"/>
+                  <stop offset="100%" stop-color="#a855f7"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+        <h2 class="loading-title" id="loading-title">Analyzing your code...</h2>
+        <p class="loading-subtitle" id="loading-subtitle">This usually takes 10-30 seconds</p>
+
+        <div class="loading-steps" id="loading-steps">
+          <div class="loading-step" data-step="analyzing">
+            <div class="step-icon">🔍</div>
+            <span>Analyzing code structure</span>
+          </div>
+          <div class="loading-step" data-step="wiring">
+            <div class="step-icon">🔗</div>
+            <span>Connecting frontend & backend</span>
+          </div>
+          <div class="loading-step" data-step="creating-files">
+            <div class="step-icon">📁</div>
+            <span>Creating project files</span>
+          </div>
+          <div class="loading-step" data-step="installing">
+            <div class="step-icon">📦</div>
+            <span>Installing dependencies</span>
+          </div>
+          <div class="loading-step" data-step="starting">
+            <div class="step-icon">🚀</div>
+            <span>Starting your website</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div class="error-section" id="error-section" style="display: none;">
+        <div class="error-icon">⚠️</div>
+        <h2 class="error-title">Something didn't work</h2>
+        <p class="error-message" id="error-message"></p>
+        <button class="retry-button" id="btn-retry">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M11.534 7h3.932a.25.25 0 01.192.41l-1.966 2.36a.25.25 0 01-.384 0l-1.966-2.36a.25.25 0 01.192-.41zm-11 2h3.932a.25.25 0 00.192-.41L2.692 6.23a.25.25 0 00-.384 0L.342 8.59A.25.25 0 00.534 9z"/>
+            <path d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 11-.771-.636A5.501 5.501 0 0113.5 8 .5.5 0 0113 8a4.5 4.5 0 00-5-4.975V3zM3.5 8a.5.5 0 00-.5.5A5.5 5.5 0 008 14a5.507 5.507 0 004.628-2.532.5.5 0 10-.839-.546A4.507 4.507 0 018 13a4.5 4.5 0 01-4.5-4.5A.5.5 0 003 8z"/>
+          </svg>
+          Try Again
+        </button>
+       <button class="retry-button" id="btn-ai-fix" style="background: linear-gradient(135deg, #6c63ff, #a855f7); border-color: #6c63ff; color: white; display: none;">
+  🔧 Fix with AI
+</button>
+      </div>
+
+      <!-- Settings Modal -->
+      <div class="modal-overlay" id="settings-modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Settings</h2>
+            <button class="modal-close" id="btn-close-settings">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="settings-api-key">Groq API Key</label>
+              <input 
+                type="password" 
+                id="settings-api-key" 
+                placeholder="gsk_xxxxxxxxxxxxxxxxxxxx"
+                spellcheck="false"
+              />
+            </div>
+            <button class="save-settings-btn" id="btn-save-settings">Save Changes</button>
+            <p id="settings-message" class="settings-message" style="display: none;"></p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deplomot - Setup</title>
+  <link rel="stylesheet" href="setup-styles.css">
+</head>
+<body>
+  <div class="setup-container">
+    <div class="setup-logo">
+      <div class="logo-icon">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="12" fill="url(#grad1)"/>
+          <path d="M14 20L22 14V22L14 28V20Z" fill="white" opacity="0.9"/>
+          <path d="M26 20L34 14V22L26 28V20Z" fill="white" opacity="0.7"/>
+          <path d="M14 30L22 24V32L14 38V30Z" fill="white" opacity="0.5"/>
+          <defs>
+            <linearGradient id="grad1" x1="0" y1="0" x2="48" y2="48">
+              <stop offset="0%" stop-color="#6c63ff"/>
+              <stop offset="100%" stop-color="#a855f7"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <h1>Deplomot</h1>
+      <p class="tagline">Quick Setup</p>
+    </div>
+
+    <div class="setup-form">
+      <div class="form-group">
+        <label for="api-key">Enter your Groq API Key</label>
+        <p class="helper-text">
+          You need a free API key from <a href="#" id="groq-link">console.groq.com</a> to use Deplomot.
+          Your key is stored only on your computer.
+        </p>
+        <input 
+          type="password" 
+          id="api-key" 
+          placeholder="gsk_xxxxxxxxxxxxxxxxxxxx"
+          spellcheck="false"
+          autocomplete="off"
+        />
+      </div>
+
+      <button id="save-btn" class="save-button">
+        <span class="btn-text">Start Using Deplomot</span>
+        <span class="btn-loader" style="display: none;">
+          <svg class="spinner" width="20" height="20" viewBox="0 0 20 20">
+            <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="50" stroke-linecap="round"/>
+          </svg>
+        </span>
+      </button>
+
+      <p id="error-msg" class="error-message" style="display: none;"></p>
+    </div>
+
+    <div class="setup-footer">
+      <p>Your API key never leaves your computer except to communicate directly with Groq.</p>
+    </div>
+  </div>
+
+  <script src="setup-renderer.js"></script>
+</body>
+</html>

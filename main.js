@@ -17,6 +17,8 @@ const dependencyInstaller = require('./utils/dependencyInstaller');
 let mainWindow = null;
 let setupWindow = null;
 let previewWindow = null;
+let lastRequestTime = 0;
+const RATE_LIMIT_MS = 10000;
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -250,6 +252,16 @@ ipcMain.handle('update-api-key', async (event, apiKey) => {
 });
 
 ipcMain.handle('analyze-and-run', async (event, pastedCode) => {
+  const now = Date.now();
+  if (lastRequestTime && (now - lastRequestTime) < RATE_LIMIT_MS) {
+    mainWindow.webContents.send('status-update', {
+      step: 'error',
+      message: 'Please wait a few seconds before analyzing again.'
+    });
+    return { success: false, error: 'Rate limit exceeded' };
+  }
+  lastRequestTime = now;
+
   try {
     serverManager.stopServer();
     await new Promise(resolve => setTimeout(resolve, 2000));

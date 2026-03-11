@@ -85,12 +85,13 @@
 
       <!-- Settings -->
       <div class="sidebar-footer">
-        <button class="settings-btn" id="btn-settings" title="Settings">
+        <button class="settings-btn" id="btn-settings" title="About">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 4.754a3.246 3.246 0 100 6.492 3.246 3.246 0 000-6.492zM5.754 8a2.246 2.246 0 114.492 0 2.246 2.246 0 01-4.492 0z"/>
-            <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 01-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 01-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 01.52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 011.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 011.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 01.52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 01-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 01-1.255-.52l-.094-.319z"/>
+            <path d="M8 15A7 7 0 118 1a7 7 0 010 14zm0 1A8 8 0 108 0a8 8 0 000 16z"/>
+            <path d="M8.93 6.588l-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588z"/>
+            <circle cx="8" cy="4.5" r="1"/>
           </svg>
-          Settings
+          About
         </button>
       </div>
     </aside>
@@ -226,21 +227,30 @@ Deplomot will figure out what goes where and build it for you."
       <div class="modal-overlay" id="settings-modal" style="display: none;">
         <div class="modal-content">
           <div class="modal-header">
-            <h2>Settings</h2>
+            <h2>About Deplomot</h2>
             <button class="modal-close" id="btn-close-settings">✕</button>
           </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="settings-api-key">Groq API Key</label>
-              <input 
-                type="password" 
-                id="settings-api-key" 
-                placeholder="gsk_xxxxxxxxxxxxxxxxxxxx"
-                spellcheck="false"
-              />
+          <div class="modal-body" style="text-align: center;">
+            <div class="about-logo" style="margin-bottom: 16px;">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <rect width="48" height="48" rx="12" fill="url(#gradS)"/>
+                <path d="M14 20L22 14V22L14 28V20Z" fill="white" opacity="0.9"/>
+                <path d="M26 20L34 14V22L26 28V20Z" fill="white" opacity="0.7"/>
+                <path d="M14 30L22 24V32L14 38V30Z" fill="white" opacity="0.5"/>
+                <defs>
+                  <linearGradient id="gradS" x1="0" y1="0" x2="48" y2="48">
+                    <stop offset="0%" stop-color="#6c63ff"/>
+                    <stop offset="100%" stop-color="#a855f7"/>
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
-            <button class="save-settings-btn" id="btn-save-settings">Save Changes</button>
-            <p id="settings-message" class="settings-message" style="display: none;"></p>
+            <h3 style="margin-bottom: 8px; color: var(--text-primary);">Deplomot</h3>
+            <p style="color: var(--text-muted); margin-bottom: 16px;">Version 1.0</p>
+            <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6;">
+              API keys are managed automatically.<br>
+              No configuration needed.
+            </p>
           </div>
         </div>
       </div>

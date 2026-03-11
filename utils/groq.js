@@ -104,6 +104,12 @@ async function makeRequest(apiKey, code) {
 }
 
 async function analyzeCode(code) {
+  code = code.trim();
+  if (code.length > 50000) {
+    code = code.substring(0, 50000);
+  }
+  code = code.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
   const startIndex = currentKeyIndex;
   let lastError = null;
 
@@ -253,6 +259,12 @@ app.listen(PORT, () => {
 }
 
 async function fixCode(originalCode, errorMessage, projectFiles) {
+  originalCode = originalCode.trim();
+  if (originalCode.length > 50000) {
+    originalCode = originalCode.substring(0, 50000);
+  }
+  originalCode = originalCode.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
   const FIX_PROMPT = `You are Deplomot, a code-fixing AI. The user's code failed to run. Your job is to fix it.
 
 You will receive:

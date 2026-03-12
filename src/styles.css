@@ -297,6 +297,57 @@ body {
   color: var(--danger);
 }
 
+/* Save Project */
+.save-project-form {
+  display: flex;
+  gap: 8px;
+}
+
+.save-project-form input {
+  flex: 1;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}
+
+.save-project-form input:focus {
+  border-color: var(--accent-primary);
+}
+
+.save-btn {
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-btn:hover {
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+
+.save-message {
+  margin-top: 8px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.save-message.success {
+  color: var(--success);
+}
+
+.save-message.error {
+  color: var(--danger);
+}
+
 /* Sidebar Footer */
 .sidebar-footer {
   margin-top: auto;
@@ -811,6 +862,85 @@ body {
 .settings-message.error {
   color: var(--danger);
   background: rgba(239, 68, 68, 0.1);
+}
+
+/* Recent Projects */
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.project-item:hover {
+  border-color: var(--border-color);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.project-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.project-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-date {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.project-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.run-project-btn,
+.delete-project-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-size: 12px;
+}
+
+.run-project-btn:hover {
+  color: var(--success);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.delete-project-btn:hover {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.no-projects {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 /* ===== RESPONSIVE ===== */

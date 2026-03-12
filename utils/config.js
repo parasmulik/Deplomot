@@ -4,6 +4,7 @@ const os = require('os');
 
 const CONFIG_DIR = path.join(os.homedir(), '.deplomot');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+const PROJECTS_FILE = path.join(CONFIG_DIR, 'projects.json');
 
 function ensureConfigDir() {
   if (!fs.existsSync(CONFIG_DIR)) {
@@ -32,6 +33,35 @@ function saveConfig(updates) {
   return merged;
 }
 
+function getProjects() {
+  ensureConfigDir();
+  try {
+    if (fs.existsSync(PROJECTS_FILE)) {
+      const data = fs.readFileSync(PROJECTS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading projects:', error);
+  }
+  return [];
+}
+
+function saveProject(project) {
+  ensureConfigDir();
+  const projects = getProjects();
+  projects.unshift(project);
+  fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2), 'utf8');
+  return projects;
+}
+
+function deleteProject(id) {
+  ensureConfigDir();
+  const projects = getProjects();
+  const filtered = projects.filter(p => p.id !== id);
+  fs.writeFileSync(PROJECTS_FILE, JSON.stringify(filtered, null, 2), 'utf8');
+  return filtered;
+}
+
 function getConfigPath() {
   return CONFIG_FILE;
 }
@@ -39,5 +69,8 @@ function getConfigPath() {
 module.exports = {
   loadConfig,
   saveConfig,
-  getConfigPath
+  getConfigPath,
+  getProjects,
+  saveProject,
+  deleteProject
 };

@@ -696,3 +696,26 @@ if (listenIndex !== -1) {
 
   return analysis;
 }
+
+// IPC Handlers for project saving
+
+ipcMain.handle('save-project', async (event, { name, code, summary }) => {
+  const project = {
+    id: Date.now().toString(),
+    name: name,
+    code: code,
+    summary: summary,
+    date: new Date().toISOString()
+  };
+  configManager.saveProject(project);
+  return { success: true, project };
+});
+
+ipcMain.handle('get-projects', async () => {
+  return configManager.getProjects();
+});
+
+ipcMain.handle('delete-project', async (event, id) => {
+  configManager.deleteProject(id);
+  return { success: true };
+});

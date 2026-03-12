@@ -38,13 +38,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const settingsModal = document.getElementById('settings-modal');
   const btnCloseSettings = document.getElementById('btn-close-settings');
-  const settingsApiKey = document.getElementById('settings-api-key');
-  const btnSaveSettings = document.getElementById('btn-save-settings');
-  const settingsMessage = document.getElementById('settings-message');
+
+  const saveSection = document.getElementById('save-section');
+  const projectNameInput = document.getElementById('project-name');
+  const btnSaveProject = document.getElementById('btn-save-project');
+  const saveMessage = document.getElementById('save-message');
 
   let currentProjectPath = '';
   let currentPreviewUrl = '';
   let lastPastedCode = '';
+  let currentSummary = '';
+  let projects = [];
 
   // Character count
   codeInput.addEventListener('input', () => {
@@ -164,14 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
     statusText.textContent = 'Stopped';
   });
 
-  // Settings
+  // Settings (About)
   btnSettings.addEventListener('click', async () => {
-    const key = await window.electronAPI.getApiKey();
-    if (key) {
-      settingsApiKey.value = key;
-    }
     settingsModal.style.display = 'flex';
-    settingsMessage.style.display = 'none';
   });
 
   btnCloseSettings.addEventListener('click', () => {
@@ -184,34 +183,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  btnSaveSettings.addEventListener('click', async () => {
-    const newKey = settingsApiKey.value.trim();
-    if (!newKey) {
-      settingsMessage.textContent = 'Please enter an API key.';
-      settingsMessage.className = 'settings-message error';
-      settingsMessage.style.display = 'block';
+  // Save Project
+  btnSaveProject.addEventListener('click', async () => {
+    const name = projectNameInput.value.trim();
+    if (!name) {
+      saveMessage.textContent = 'Please enter a project name.';
+      saveMessage.className = 'save-message error';
+      saveMessage.style.display = 'block';
       return;
     }
 
-    if (!newKey.startsWith('gsk_')) {
-      settingsMessage.textContent = 'API key should start with "gsk_".';
-      settingsMessage.className = 'settings-message error';
-      settingsMessage.style.display = 'block';
-      return;
-    }
+    const result = await window.electronAPI.saveProject({
+      name: name,
+      code: lastPastedCode,
+      summary: currentSummary
+    });
 
-    const result = await window.electronAPI.updateApiKey(newKey);
     if (result.success) {
-      settingsMessage.textContent = 'API key saved successfully!';
-      settingsMessage.className = 'settings-message success';
-      settingsMessage.style.display = 'block';
+      saveMessage.textContent = 'Project saved!';
+      saveMessage.className = 'save-message success';
+      saveMessage.style.display = 'block';
+      projectNameInput.value = '';
       setTimeout(() => {
-        settingsModal.style.display = 'none';
-      }, 1500);
+        saveMessage.style.display = 'none';
+      }, 2000);
     } else {
-      settingsMessage.textContent = 'Could not save API key.';
-      settingsMessage.className = 'settings-message error';
-      settingsMessage.style.display = 'block';
+      saveMessage.textContent = 'Could not save project.';
+      saveMessage.className = 'save-message error';
+      saveMessage.style.display = 'block';
     }
   });
 
@@ -265,6 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showResults(result) {
+    currentSummary = result.summary || '';
+    
     // Show hero again but with success state
     heroSection.style.display = 'flex';
     loadingSection.style.display = 'none';
@@ -288,6 +289,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     actionsSection.style.display = 'block';
     actionsSection.classList.add('slide-in');
+
+    saveSection.style.display = 'block';
+    saveSection.classList.add('slide-in');
   }
 
   function renderFilesList(files) {
@@ -393,4 +397,68 @@ document.addEventListener('DOMContentLoaded', () => {
       charCount.textContent = `${len.toLocaleString()} character${len !== 1 ? 's' : ''}`;
     }, 100);
   });
+
+  // Recent Projects
+  async function loadProjects() {
+    try {
+      projects = await window.electronAPI.getProjects();
+      const projectsList = document.getElementById('projects-list');
+      
+      if (projects.length === 0) {
+        projectsList.innerHTML = '<p class="no-projects">No recent projects</p>';
+        document.getElementById('recent-projects-section').style.display = 'none';
+        return;
+      }
+      
+      document.getElementById('recent-projects-section').style.display = 'block';
+      projectsList.innerHTML = '';
+      
+      projects.forEach((project, index) => {
+        const item = document.createElement('div');
+        item.className = 'project-item';
+        item.style.animationDelay = `${index * 50}ms`;
+        
+        const date = new Date(project.date).toLocaleString();
+        item.innerHTML = `
+          <div class="project-info">
+            <div class="project-name">${project.name}</div>
+            <div class="project-date">${date}</div>
+          </div>
+          <div class="project-actions">
+            <button class="run-project-btn" data-id="${project.id}">▶ Run</button>
+            <button class="delete-project-btn" data-id="${project.id}">🗑</button>
+          </div>
+        `;
+        
+        projectsList.appendChild(item);
+      });
+      
+      // Add event listeners to buttons
+      projectsList.querySelectorAll('.run-project-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.dataset.id;
+          const project = projects.find(p => p.id === id);
+          if (project) {
+            codeInput.value = project.code;
+            lastPastedCode = project.code;
+            currentSummary = project.summary || '';
+            btnRun.click(); // Auto-click Analyze & Run
+          }
+        });
+      });
+      
+      projectsList.querySelectorAll('.delete-project-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.dataset.id;
+          await window.electronAPI.deleteProject(id);
+          loadProjects(); // Refresh the list
+        });
+      });
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  }
+
+  // Load projects on startup
+  loadProjects();
 });

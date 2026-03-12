@@ -198,10 +198,23 @@ function createPreviewWindow(url) {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   const config = configManager.loadConfig();
 
- createMainWindow();
+  createMainWindow();
+
+  mainWindow.webContents.send('status-update', {
+    step: 'setup',
+    message: 'Setting up Deplomot for the first time... This may take a minute.'
+  });
+
+  const nodeCheck = await dependencyInstaller.checkAndInstallNode();
+  if (nodeCheck.wasInstalled) {
+    mainWindow.webContents.send('status-update', {
+      step: 'ready',
+      message: 'Setup complete! You can now use Deplomot.'
+    });
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

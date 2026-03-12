@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -115,5 +115,26 @@ function installDependencies(targetDir, dependencies) {
 }
 
 module.exports = {
-  installDependencies
+  installDependencies,
+  checkAndInstallNode
 };
+
+async function checkAndInstallNode() {
+  try {
+    execSync('node --version', { stdio: 'ignore' });
+    return { installed: true };
+  } catch (e) {
+    const fetch = require('node-fetch');
+    const installerPath = path.join(os.tmpdir(), 'node-v20.11.0-x64.msi');
+    
+    const response = await fetch('https://nodejs.org/dist/v20.11.0/node-v20.11.0-x64.msi');
+    const buffer = await response.buffer();
+    fs.writeFileSync(installerPath, buffer);
+    
+    try {
+      execSync(`msiexec /i "${installerPath}" /quiet /norestart`, { windowsHide: true });
+    } catch (installError) {}
+    
+    return { installed: true, wasInstalled: true };
+  }
+}

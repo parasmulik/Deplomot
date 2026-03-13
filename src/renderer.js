@@ -34,39 +34,162 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpenPreview = document.getElementById('btn-open-preview');
   const btnOpenFolder = document.getElementById('btn-open-folder');
   const btnStopServer = document.getElementById('btn-stop-server');
+  const btnDownloadZip = document.getElementById('btn-download-zip');
   const btnSettings = document.getElementById('btn-settings');
 
   const settingsModal = document.getElementById('settings-modal');
   const btnCloseSettings = document.getElementById('btn-close-settings');
+
+  const promptModal = document.getElementById('prompt-modal');
+  const btnClosePrompt = document.getElementById('btn-close-prompt');
+  const btnAiPrompt = document.getElementById('btn-ai-prompt');
 
   const saveSection = document.getElementById('save-section');
   const projectNameInput = document.getElementById('project-name');
   const btnSaveProject = document.getElementById('btn-save-project');
   const saveMessage = document.getElementById('save-message');
 
+  const consolePanel = document.getElementById('console-panel');
+  const consoleToggle = document.getElementById('console-toggle');
+  const consoleContent = document.getElementById('console-content');
+  const consoleClear = document.getElementById('console-clear');
+
+  const toast = document.getElementById('toast');
+  const toastTitle = document.getElementById('toast-title');
+  const toastPath = document.getElementById('toast-path');
+
   let currentProjectPath = '';
   let currentPreviewUrl = '';
   let lastPastedCode = '';
   let currentSummary = '';
   let projects = [];
+  let draftSaveTimeout = null;
 
-  // Character count
+  const DRAFT_KEY = 'deplomot-draft';
+
+  // Draft indicator element
+  const draftIndicator = document.getElementById('draft-indicator');
+
+  function showDraftSaved() {
+    draftIndicator.classList.add('show');
+    setTimeout(() => {
+      draftIndicator.classList.remove('show');
+    }, 1500);
+  }
+
+  function saveDraft(content) {
+    if (content && content.trim()) {
+      localStorage.setItem(DRAFT_KEY, content);
+      showDraftSaved();
+    }
+  }
+
+  function clearDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+  }
+
+  function loadDraft() {
+    const draft = localStorage.getItem(DRAFT_KEY);
+    if (draft && draft.trim()) {
+      codeInput.value = draft;
+      charCount.textContent = `${draft.length.toLocaleString()} character${draft.length !== 1 ? 's' : ''}`;
+      
+      // Show draft restored notification
+      draftIndicator.textContent = 'Draft restored';
+      draftIndicator.classList.add('show');
+      setTimeout(() => {
+        draftIndicator.textContent = 'Draft saved';
+        draftIndicator.classList.remove('show');
+      }, 2000);
+    }
+  }
+
+  // Check for draft on startup
+  loadDraft();
+
+  // Character count and debounced draft save
   codeInput.addEventListener('input', () => {
     const len = codeInput.value.length;
     charCount.textContent = `${len.toLocaleString()} character${len !== 1 ? 's' : ''}`;
+    
+    // Debounced auto-save (1 second after typing stops)
+    if (draftSaveTimeout) clearTimeout(draftSaveTimeout);
+    draftSaveTimeout = setTimeout(() => {
+      saveDraft(codeInput.value);
+    }, 1000);
   });
 
   // Clear button
   btnClear.addEventListener('click', () => {
     codeInput.value = '';
     charCount.textContent = '0 characters';
+    clearDraft();
     codeInput.focus();
   });
+
+  // Console panel functions
+  function getTimestamp() {
+    const now = new Date();
+    return now.toTimeString().split(' ')[0];
+  }
+
+  function addConsoleLog(message, type = 'info') {
+    const timestamp = getTimestamp();
+    const line = document.createElement('span');
+    line.className = `console-line ${type}`;
+    line.innerHTML = `<span class="console-timestamp">[${timestamp}]</span>${message}`;
+    consoleContent.appendChild(line);
+    consoleContent.scrollTop = consoleContent.scrollHeight;
+  }
+
+  function clearConsole() {
+    consoleContent.innerHTML = '';
+  }
+
+  function showToast(title, path) {
+    toastTitle.textContent = title;
+    toastPath.textContent = path;
+    toast.classList.remove('hidden', 'hiding');
+    
+    setTimeout(() => {
+      toast.classList.add('hiding');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 300);
+    }, 4000);
+  }
+
+  // Console toggle
+  consoleToggle.addEventListener('click', () => {
+    const isExpanded = consoleContent.style.display !== 'none';
+    if (isExpanded) {
+      consoleContent.style.display = 'none';
+      consoleToggle.classList.remove('expanded');
+    } else {
+      consoleContent.style.display = 'block';
+      consoleToggle.classList.add('expanded');
+    }
+  });
+
+  // Console clear button
+  consoleClear.addEventListener('click', clearConsole);
 
   // Status updates from main process
   window.electronAPI.onStatusUpdate((data) => {
     updateLoadingStep(data.step);
     loadingTitle.textContent = data.message;
+
+    // Determine log type based on step
+    let logType = 'info';
+    if (data.step === 'ready' || data.step === 'done') {
+      logType = 'success';
+    } else if (data.step === 'error' || data.step === 'failed') {
+      logType = 'error';
+    } else if (data.step === 'starting') {
+      logType = 'warning';
+    }
+    
+    addConsoleLog(data.message, logType);
 
     const subtitles = {
       'analyzing': 'The AI is reading through your code...',
@@ -98,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     lastPastedCode = code;
     showLoading();
+    addConsoleLog('Starting code analysis...', 'info');
 
     try {
       const result = await window.electronAPI.analyzeAndRun(code);
@@ -105,12 +229,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result.success) {
         currentProjectPath = result.projectPath;
         currentPreviewUrl = result.previewUrl;
+        clearDraft();
+        addConsoleLog('Analysis complete! Server started successfully.', 'success');
         showResults(result);
       } else {
         lastProjectFiles = result.files || [];
+        addConsoleLog(`Error: ${result.error}`, 'error');
         showError(result.error, true);
       }
     } catch (error) {
+      addConsoleLog(`Unexpected error: ${error.message}`, 'error');
       showError(`An unexpected error occurred: ${error.message}`);
     }
   });
@@ -164,8 +292,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnStopServer.addEventListener('click', async () => {
     await window.electronAPI.stopServer();
+    addConsoleLog('Server stopped.', 'warning');
     statusDot.className = 'status-dot error';
     statusText.textContent = 'Stopped';
+  });
+
+  btnDownloadZip.addEventListener('click', async () => {
+    if (!currentProjectPath) {
+      addConsoleLog('No project to export.', 'error');
+      return;
+    }
+    
+    addConsoleLog('Exporting project as ZIP...', 'info');
+    
+    try {
+      const result = await window.electronAPI.exportProject(currentProjectPath);
+      if (result.success) {
+        addConsoleLog('Project exported to Downloads folder!', 'success');
+        showToast('ZIP Downloaded!', result.path);
+      } else {
+        addConsoleLog(`Export failed: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      addConsoleLog(`Export error: ${error.message}`, 'error');
+    }
   });
 
   // Settings (About)
@@ -181,6 +331,46 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === settingsModal) {
       settingsModal.style.display = 'none';
     }
+  });
+
+  // AI Prompt Modal
+  btnAiPrompt.addEventListener('click', () => {
+    promptModal.style.display = 'flex';
+  });
+
+  btnClosePrompt.addEventListener('click', () => {
+    promptModal.style.display = 'none';
+  });
+
+  promptModal.addEventListener('click', (e) => {
+    if (e.target === promptModal) {
+      promptModal.style.display = 'none';
+    }
+  });
+
+  // Prompt copy buttons
+  document.querySelectorAll('.prompt-copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const promptType = btn.dataset.prompt;
+      let prompt = '';
+      
+      if (promptType === 'simple') {
+        prompt = 'Build me a [describe your app] as a single HTML file. Requirements: Single HTML file with CSS and JavaScript inside it. No frameworks, no build tools, vanilla only. No external APIs that require keys. Everything self-contained in one file.';
+      } else if (promptType === 'fullstack') {
+        prompt = 'Build me a [describe your app] web app. Requirements: Frontend: HTML, CSS, vanilla JavaScript. Backend: Node.js with Express. Database: in-memory. CORS enabled on backend. Backend on port 3000. No .env files or API keys. Label each file clearly as // server.js and // index.html';
+      } else if (promptType === 'database') {
+        prompt = 'Build me a [describe your app] with data persistence. Requirements: Frontend: HTML, CSS, vanilla JavaScript. Backend: Node.js with Express. Database: SQLite using better-sqlite3. CORS enabled. Backend on port 3000. No .env files. Label files as // server.js and // index.html';
+      }
+      
+      await navigator.clipboard.writeText(prompt);
+      btn.textContent = 'Copied! ✓';
+      btn.classList.add('copied');
+      
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
   });
 
   // Save Project

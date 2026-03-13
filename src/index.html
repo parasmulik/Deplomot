@@ -80,6 +80,12 @@
             </svg>
             ⏹ Stop
           </button>
+          <button class="action-btn" id="btn-download-zip" title="Download as ZIP">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1v10M4 7l4 4 4-4M2 14h12"/>
+            </svg>
+            ⬇ Download ZIP
+          </button>
         </div>
       </div>
 
@@ -154,6 +160,7 @@ Deplomot will figure out what goes where and build it for you."
           ></textarea>
           <div class="textarea-footer">
             <span class="char-count" id="char-count">0 characters</span>
+            <span class="draft-indicator" id="draft-indicator" style="display: none;">Draft saved</span>
           </div>
         </div>
 
@@ -171,7 +178,23 @@ Deplomot will figure out what goes where and build it for you."
           </span>
         </button>
 
+        <p class="shortcut-hint">or press Ctrl+Enter</p>
+
         <p class="hint-text">Works with code from ChatGPT, Claude, Gemini, Copilot, and more</p>
+
+        <button class="ai-prompt-btn" id="btn-ai-prompt">🤖 Get AI Prompt</button>
+
+        <!-- Console / Logs Panel -->
+        <div class="console-panel" id="console-panel">
+          <div class="console-header">
+            <button class="console-toggle" id="console-toggle">
+              <span class="console-arrow">▼</span> Console
+            </button>
+            <button class="console-clear" id="console-clear">Clear</button>
+          </div>
+          <div class="console-content" id="console-content" style="display: none;">
+          </div>
+        </div>
       </div>
 
       <!-- Loading / Status State -->
@@ -267,6 +290,42 @@ Deplomot will figure out what goes where and build it for you."
               API keys are managed automatically.<br>
               No configuration needed.
             </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast Notification -->
+      <div id="toast" class="toast hidden">
+        <span id="toast-icon">✅</span>
+        <div>
+          <div id="toast-title">Project Exported!</div>
+          <div id="toast-path"></div>
+        </div>
+      </div>
+
+      <!-- AI Prompt Modal -->
+      <div class="modal-overlay" id="prompt-modal" style="display: none;">
+        <div class="modal-content prompt-modal-content">
+          <div class="modal-header">
+            <h2>Copy a prompt, paste it in ChatGPT or any AI</h2>
+            <button class="modal-close" id="btn-close-prompt">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="prompt-card">
+              <div class="prompt-label">Simple (Frontend only)</div>
+              <div class="prompt-text">Build me a [describe your app] as a single HTML file. Requirements: Single HTML file with CSS and JavaScript inside it. No frameworks, no build tools, vanilla only. No external APIs that require keys. Everything self-contained in one file.</div>
+              <button class="prompt-copy-btn" data-prompt="simple">Copy</button>
+            </div>
+            <div class="prompt-card">
+              <div class="prompt-label">Full Stack (Node.js + Express)</div>
+              <div class="prompt-text">Build me a [describe your app] web app. Requirements: Frontend: HTML, CSS, vanilla JavaScript. Backend: Node.js with Express. Database: in-memory. CORS enabled on backend. Backend on port 3000. No .env files or API keys. Label each file clearly as // server.js and // index.html</div>
+              <button class="prompt-copy-btn" data-prompt="fullstack">Copy</button>
+            </div>
+            <div class="prompt-card">
+              <div class="prompt-label">With Database (SQLite)</div>
+              <div class="prompt-text">Build me a [describe your app] with data persistence. Requirements: Frontend: HTML, CSS, vanilla JavaScript. Backend: Node.js with Express. Database: SQLite using better-sqlite3. CORS enabled. Backend on port 3000. No .env files. Label files as // server.js and // index.html</div>
+              <button class="prompt-copy-btn" data-prompt="database">Copy</button>
+            </div>
           </div>
         </div>
       </div>

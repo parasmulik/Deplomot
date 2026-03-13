@@ -8,6 +8,8 @@ const {
 const path = require('path');
 const { execSync } = require('child_process');
 const fs = require('fs');
+const archiver = require('archiver');
+const os = require('os');
 const configManager = require('./utils/config');
 const groqAPI = require('./utils/groq');
 const fileManager = require('./utils/fileManager');
@@ -718,4 +720,28 @@ ipcMain.handle('get-projects', async () => {
 ipcMain.handle('delete-project', async (event, id) => {
   configManager.deleteProject(id);
   return { success: true };
+});
+
+ipcMain.handle('export-project', async (event, projectPath) => {
+  return new Promise((resolve) => {
+    const downloadsPath = app.getPath('downloads');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const zipFileName = `deplomot-export-${timestamp}.zip`;
+    const zipPath = path.join(downloadsPath, zipFileName);
+    
+    const output = fs.createWriteStream(zipPath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    
+    output.on('close', () => {
+      resolve({ success: true, path: zipPath });
+    });
+    
+    archive.on('error', (err) => {
+      resolve({ success: false, error: err.message });
+    });
+    
+    archive.pipe(output);
+    archive.directory(projectPath, false);
+    archive.finalize();
+  });
 });

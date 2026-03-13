@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveProject: (data) => ipcRenderer.invoke('save-project', data),
   getProjects: () => ipcRenderer.invoke('get-projects'),
   deleteProject: (id) => ipcRenderer.invoke('delete-project', id),
+  exportProject: (projectPath) => ipcRenderer.invoke('export-project', projectPath),
   onStatusUpdate: (callback) => {
     ipcRenderer.on('status-update', (event, data) => callback(data));
   },

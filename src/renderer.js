@@ -166,6 +166,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Font size control
+  const FONT_SIZE_KEY = 'deplomot-fontsize';
+  const DEFAULT_FONT_SIZE = 14;
+  const MIN_FONT_SIZE = 10;
+  const MAX_FONT_SIZE = 24;
+  const FONT_SIZE_STEP = 2;
+
+  const btnFontDecrease = document.getElementById('btn-font-decrease');
+  const btnFontIncrease = document.getElementById('btn-font-increase');
+  const fontSizeLabel = document.getElementById('font-size-label');
+
+  function getSavedFontSize() {
+    const saved = localStorage.getItem(FONT_SIZE_KEY);
+    return saved ? parseInt(saved, 10) : DEFAULT_FONT_SIZE;
+  }
+
+  function setFontSize(size) {
+    const clampedSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, size));
+    codeInput.style.fontSize = clampedSize + 'px';
+    fontSizeLabel.textContent = clampedSize + 'px';
+    localStorage.setItem(FONT_SIZE_KEY, clampedSize.toString());
+  }
+
+  // Load saved font size on startup
+  setFontSize(getSavedFontSize());
+
+  btnFontDecrease.addEventListener('click', () => {
+    const currentSize = parseInt(localStorage.getItem(FONT_SIZE_KEY) || DEFAULT_FONT_SIZE);
+    setFontSize(currentSize - FONT_SIZE_STEP);
+  });
+
+  btnFontIncrease.addEventListener('click', () => {
+    const currentSize = parseInt(localStorage.getItem(FONT_SIZE_KEY) || DEFAULT_FONT_SIZE);
+    setFontSize(currentSize + FONT_SIZE_STEP);
+  });
+
   // Drag and drop
   const codeInputContainer = document.querySelector('.code-input-container');
   

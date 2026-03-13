@@ -177,6 +177,23 @@ html {
   color: var(--text-secondary);
 }
 
+.summary-bullets {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.summary-bullets li {
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.summary-bullets li::marker {
+  color: #d4a843;
+}
+
 /* Files List */
 .files-list {
   display: flex;
@@ -315,6 +332,16 @@ html {
   padding: 16px;
   border-top: 1px solid rgba(212, 168, 67, 0.3);
   -webkit-app-region: no-drag;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.version-footer {
+  font-size: 11px;
+  color: #5C5C5C;
+  text-align: center;
 }
 
 .settings-btn {

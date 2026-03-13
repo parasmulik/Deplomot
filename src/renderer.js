@@ -587,7 +587,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     summarySection.style.display = 'block';
     summarySection.classList.add('slide-in');
-    summaryText.textContent = result.summary;
+    
+    // Convert summary to bullet points
+    const summaryContent = result.summary;
+    const points = summaryContent.split(/(?<=[.!?])\s+|\n+/).filter(p => p.trim());
+    if (points.length > 1) {
+      summaryText.innerHTML = '<ul class="summary-bullets">' + 
+        points.map(p => `<li>${p.trim()}</li>`).join('') + 
+        '</ul>';
+    } else {
+      summaryText.textContent = result.summary;
+    }
 
     filesSection.style.display = 'block';
     filesSection.classList.add('slide-in');

@@ -772,6 +772,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Search projects
+  const projectsSearch = document.getElementById('projects-search');
+  projectsSearch.addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    const projectsList = document.getElementById('projects-list');
+    const projectItems = projectsList.querySelectorAll('.project-item');
+    
+    let hasResults = false;
+    
+    projectItems.forEach(item => {
+      const nameEl = item.querySelector('.project-name');
+      const projectName = nameEl.textContent.toLowerCase();
+      if (projectName.includes(searchTerm)) {
+        item.style.display = '';
+        hasResults = true;
+      } else {
+        item.style.display = 'none';
+      }
+    });
+    
+    // Show/hide "no results" message
+    let noResultsMsg = projectsList.querySelector('.no-results');
+    if (!hasResults && searchTerm) {
+      if (!noResultsMsg) {
+        noResultsMsg = document.createElement('p');
+        noResultsMsg.className = 'no-results';
+        noResultsMsg.textContent = 'No projects found';
+        projectsList.appendChild(noResultsMsg);
+      }
+    } else if (noResultsMsg) {
+      noResultsMsg.remove();
+    }
+  });
+
   // Load projects on startup
   loadProjects();
 });

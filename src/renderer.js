@@ -141,6 +141,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Fullscreen toggle
+  const btnFullscreen = document.getElementById('btn-fullscreen');
+  let isFullscreen = false;
+
+  function toggleFullscreen() {
+    isFullscreen = !isFullscreen;
+    if (isFullscreen) {
+      codeInputContainer.classList.add('textarea-fullscreen');
+      btnFullscreen.textContent = '✕';
+      btnFullscreen.title = 'Exit Fullscreen (Esc)';
+    } else {
+      codeInputContainer.classList.remove('textarea-fullscreen');
+      btnFullscreen.textContent = '⤢';
+      btnFullscreen.title = 'Fullscreen';
+    }
+  }
+
+  btnFullscreen.addEventListener('click', toggleFullscreen);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isFullscreen) {
+      toggleFullscreen();
+    }
+  });
+
   // Drag and drop
   const codeInputContainer = document.querySelector('.code-input-container');
   

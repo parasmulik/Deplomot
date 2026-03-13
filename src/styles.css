@@ -35,11 +35,17 @@ body {
   height: 100vh;
 }
 
+html {
+  overflow: hidden;
+  height: 100%;
+}
+
 /* ===== APP LAYOUT ===== */
 .app-container {
   display: flex;
   height: 100vh;
   overflow: hidden;
+  max-height: 100vh;
 }
 
 /* ===== SIDEBAR ===== */
@@ -340,6 +346,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow-y: auto;
+  scroll-behavior: smooth;
   padding: 40px;
   position: relative;
 }
@@ -362,12 +369,21 @@ body {
   align-items: center;
   max-width: 680px;
   width: 100%;
+  padding-top: 20px;
+  min-height: fit-content;
 }
 
 .hero-logo {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  margin-top: 0;
   animation: float 3s ease-in-out infinite;
   position: relative;
+}
+
+.hero-logo img {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
 }
 
 .hero-logo::before {

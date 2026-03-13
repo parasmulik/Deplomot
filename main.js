@@ -762,6 +762,14 @@ ipcMain.handle('delete-project', async (event, id) => {
   return { success: true };
 });
 
+ipcMain.handle('rename-project', async (event, id, newName) => {
+  const result = configManager.renameProject(id, newName);
+  if (result) {
+    return { success: true };
+  }
+  return { success: false, error: 'Project not found' };
+});
+
 ipcMain.handle('export-project', async (event, projectPath) => {
   return new Promise((resolve) => {
     const downloadsPath = app.getPath('downloads');

@@ -691,10 +691,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const date = new Date(project.date).toLocaleString();
         item.innerHTML = `
           <div class="project-info">
-            <div class="project-name">${project.name}</div>
+            <div class="project-name" data-id="${project.id}">${project.name}</div>
             <div class="project-date">${date}</div>
           </div>
           <div class="project-actions">
+            <button class="rename-project-btn" data-id="${project.id}" title="Rename">✏</button>
             <button class="run-project-btn" data-id="${project.id}">▶ Run</button>
             <button class="delete-project-btn" data-id="${project.id}">🗑</button>
           </div>
@@ -722,6 +723,48 @@ document.addEventListener('DOMContentLoaded', () => {
           const id = e.currentTarget.dataset.id;
           await window.electronAPI.deleteProject(id);
           loadProjects(); // Refresh the list
+        });
+      });
+
+      // Rename button handlers
+      projectsList.querySelectorAll('.rename-project-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.dataset.id;
+          const project = projects.find(p => p.id === id);
+          if (!project) return;
+
+          const nameEl = e.currentTarget.closest('.project-item').querySelector('.project-name');
+          const currentName = project.name;
+          
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'rename-input';
+          input.value = currentName;
+          
+          nameEl.innerHTML = '';
+          nameEl.appendChild(input);
+          input.focus();
+          input.select();
+
+          const saveRename = async () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+              await window.electronAPI.renameProject(id, newName);
+              loadProjects();
+            } else {
+              nameEl.textContent = currentName;
+            }
+          };
+
+          input.addEventListener('blur', saveRename);
+          input.addEventListener('keydown', (evt) => {
+            if (evt.key === 'Enter') {
+              input.blur();
+            } else if (evt.key === 'Escape') {
+              input.value = currentName;
+              nameEl.textContent = currentName;
+            }
+          });
         });
       });
     } catch (error) {

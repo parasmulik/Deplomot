@@ -1233,7 +1233,8 @@ html {
 }
 
 .run-project-btn,
-.delete-project-btn {
+.delete-project-btn,
+.rename-project-btn {
   background: transparent;
   border: 1px solid var(--accent-teal);
   color: var(--accent-teal);
@@ -1244,6 +1245,11 @@ html {
   font-size: 12px;
 }
 
+.rename-project-btn {
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
 .run-project-btn:hover {
   background: var(--accent-teal);
   color: var(--bg-primary);
@@ -1252,6 +1258,23 @@ html {
 .delete-project-btn:hover {
   background: var(--accent-teal);
   color: var(--bg-primary);
+}
+
+.rename-project-btn:hover {
+  background: var(--accent-teal);
+  color: var(--bg-primary);
+}
+
+.rename-input {
+  width: 100%;
+  background: #1a1a1a;
+  border: none;
+  border-bottom: 1px solid #d4a843;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 4px;
+  outline: none;
 }
 
 .no-projects {

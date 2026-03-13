@@ -62,6 +62,18 @@ function deleteProject(id) {
   return filtered;
 }
 
+function renameProject(id, newName) {
+  ensureConfigDir();
+  const projects = getProjects();
+  const projectIndex = projects.findIndex(p => p.id === id);
+  if (projectIndex !== -1) {
+    projects[projectIndex].name = newName;
+    fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2), 'utf8');
+    return projects;
+  }
+  return null;
+}
+
 function getConfigPath() {
   return CONFIG_FILE;
 }
@@ -72,5 +84,6 @@ module.exports = {
   getConfigPath,
   getProjects,
   saveProject,
-  deleteProject
+  deleteProject,
+  renameProject
 };

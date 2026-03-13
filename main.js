@@ -3,7 +3,8 @@ const {
   BrowserWindow,
   ipcMain,
   shell,
-  dialog
+  dialog,
+  Menu
 } = require('electron');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -202,6 +203,8 @@ function createPreviewWindow(url) {
 
 app.whenReady().then(async () => {
   const config = configManager.loadConfig();
+
+  Menu.setApplicationMenu(null);
 
   createMainWindow();
 

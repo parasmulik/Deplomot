@@ -46,13 +46,14 @@ body {
 .sidebar {
   width: 280px;
   min-width: 280px;
-  background: var(--bg-secondary);
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #111111 100%);
   border-right: 1px solid rgba(212, 168, 67, 0.3);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-app-region: drag;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.05), 2px 0 20px rgba(0,0,0,0.5);
 }
 
 .sidebar::-webkit-scrollbar {
@@ -332,6 +333,17 @@ body {
   position: relative;
 }
 
+.main-content::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
+  background: radial-gradient(ellipse 600px 300px at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+
 /* ===== HERO SECTION ===== */
 .hero-section {
   display: flex;
@@ -378,15 +390,18 @@ body {
 
 .hero-subtitle {
   font-size: 16px;
-  color: #888888;
+  background: linear-gradient(135deg, #aaaaaa, #555555);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 36px;
 }
 
 /* Code Input */
 .code-input-container {
   width: 100%;
-  background: var(--bg-tertiary);
-  border: 1px solid rgba(212, 168, 67, 0.3);
+  background: #1a1a1a;
+  border: 1px solid rgba(212,168,67,0.3);
   border-radius: var(--radius-lg);
   overflow: hidden;
   transition: border-color 0.3s, box-shadow 0.3s;
@@ -449,7 +464,7 @@ body {
   min-height: 240px;
   max-height: 400px;
   padding: 16px;
-  background: transparent;
+  background: #161616;
   border: none;
   color: var(--text-primary);
   font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
@@ -876,15 +891,15 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(212, 168, 67, 0.2);
+  background: #222222;
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: var(--radius-sm);
   transition: all 0.2s;
 }
 
 .project-item:hover {
-  border-color: #d4a843;
-  background: rgba(0, 0, 0, 0.4);
+  background: #2d2d2d;
+  border: 1px solid rgba(212,168,67,0.4);
 }
 
 .project-info {

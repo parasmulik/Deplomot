@@ -207,7 +207,7 @@ app.whenReady().then(async () => {
 
   mainWindow.webContents.send('status-update', {
     step: 'setup',
-    message: 'Setting up Deplomot for the first time... This may take a minute.'
+    message: 'Setting up Deplomot for the first time... Downloading Node.js (~30MB)'
   });
 
   const nodeCheck = await dependencyInstaller.checkAndInstallNode();
@@ -278,6 +278,20 @@ ipcMain.handle('analyze-and-run', async (event, pastedCode) => {
   lastRequestTime = now;
 
   try {
+    // Check/install bundled Node.js with status callback
+    const sendStatus = (message) => {
+      mainWindow.webContents.send('status-update', {
+        step: 'setup',
+        message: message
+      });
+    };
+    
+    const nodeCheck = await dependencyInstaller.checkAndInstallNode(sendStatus);
+    if (nodeCheck.wasInstalled) {
+      // Brief pause after setup before continuing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
     serverManager.stopServer();
     await new Promise(resolve => setTimeout(resolve, 2000));
     const config = configManager.loadConfig();

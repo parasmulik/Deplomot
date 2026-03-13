@@ -2,15 +2,13 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const dependencyInstaller = require('./dependencyInstaller');
 
 let serverProcess = null;
 let staticServerInstance = null;
 
 function getNodePath() {
-  if (process.platform === 'win32') {
-    return 'node';
-  }
-  return 'node';
+  return dependencyInstaller.getBundledNodePath();
 }
 
 function startServer(backendDir, serverFile) {
@@ -29,14 +27,18 @@ function startServer(backendDir, serverFile) {
     }
 
     const nodeCmd = getNodePath();
+    const nodeDir = path.dirname(nodeCmd);
     const env = {
       ...process.env,
       PORT: '3847',
       NODE_ENV: 'development'
     };
 
-    if (process.platform === 'darwin') {
-      env.PATH = `/usr/local/bin:/opt/homebrew/bin:${env.PATH}`;
+    // Add bundled node to PATH
+    if (process.platform === 'win32') {
+      env.PATH = `${nodeDir};${env.PATH}`;
+    } else {
+      env.PATH = `${nodeDir}:${env.PATH}`;
     }
 
     serverProcess = spawn(nodeCmd, [serverFile], {

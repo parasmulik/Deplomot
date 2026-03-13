@@ -3,24 +3,49 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-function getNpmPath() {
-  if (process.platform === 'win32') {
-    // On Windows, try common npm paths
-    const possiblePaths = [
-      path.join(process.env.APPDATA, 'npm', 'npm.cmd'),
-      'npm.cmd',
-      'npm'
-    ];
+function getBundledNodeDir() {
+  return path.join(os.homedir(), '.deplomot', 'node');
+}
 
-    for (const p of possiblePaths) {
-      try {
-        if (p === 'npm.cmd' || p === 'npm') return p;
-        if (fs.existsSync(p)) return p;
-      } catch (e) {}
-    }
+function getBundledNodePath() {
+  // Point directly to extracted subfolder
+  if (process.platform === 'win32') {
+    return path.join(getBundledNodeDir(), 'node-v20.11.0-win-x64', 'node.exe');
+  }
+  return path.join(getBundledNodeDir(), 'node-v20.11.0-win-x64', 'bin', 'node');
+}
+
+function getBundledNpmPath() {
+  // Point directly to extracted subfolder
+  if (process.platform === 'win32') {
+    return path.join(getBundledNodeDir(), 'node-v20.11.0-win-x64', 'npm.cmd');
+  }
+  return path.join(getBundledNodeDir(), 'node-v20.11.0-win-x64', 'bin', 'npm');
+}
+
+function getNpmPath() {
+  // Use bundled npm first
+  const bundledNpm = getBundledNpmPath();
+  if (fs.existsSync(bundledNpm)) {
+    return bundledNpm;
+  }
+
+  // Fallback to system npm
+  if (process.platform === 'win32') {
     return 'npm.cmd';
   }
   return 'npm';
+}
+
+function getNodePath() {
+  // Use bundled node first
+  const bundledNode = getBundledNodePath();
+  if (fs.existsSync(bundledNode)) {
+    return bundledNode;
+  }
+
+  // Fallback to system node
+  return 'node';
 }
 
 function installDependencies(targetDir, dependencies) {
@@ -33,7 +58,7 @@ function installDependencies(targetDir, dependencies) {
         deps[dep] = '*';
       });
       const packageJson = {
-        name: 'pastify-generated',
+        name: 'deplomot-generated',
         version: '1.0.0',
         dependencies: deps
       };
@@ -57,11 +82,14 @@ function installDependencies(targetDir, dependencies) {
     }
 
     const npmCmd = getNpmPath();
+    const nodeDir = path.dirname(npmCmd);
     const env = { ...process.env };
 
-    // Ensure node/npm are in PATH
-    if (process.platform === 'darwin') {
-      env.PATH = `/usr/local/bin:/opt/homebrew/bin:/usr/local/share/npm/bin:${env.PATH}`;
+    // Add bundled node/npm to PATH
+    if (process.platform === 'win32') {
+      env.PATH = `${nodeDir};${env.PATH}`;
+    } else {
+      env.PATH = `${nodeDir}:${env.PATH}`;
     }
 
     const child = spawn(npmCmd, ['install', '--production', '--no-audit', '--no-fund'], {
@@ -114,27 +142,66 @@ function installDependencies(targetDir, dependencies) {
   });
 }
 
+async function checkAndInstallNode(sendStatus) {
+  // Check if bundled node already exists at the subfolder path
+  const bundledNodePath = getBundledNodePath();
+  if (fs.existsSync(bundledNodePath)) {
+    return { installed: true };
+  }
+
+  // Download portable Node.js
+  const nodeDir = getBundledNodeDir();
+  const fetch = require('node-fetch');
+  const extract = require('extract-zip');
+  
+  const zipUrl = 'https://nodejs.org/dist/v20.11.0/node-v20.11.0-win-x64.zip';
+  const zipPath = path.join(os.tmpdir(), 'node-v20.11.0-win-x64.zip');
+
+  // Ensure directory exists
+  if (!fs.existsSync(nodeDir)) {
+    fs.mkdirSync(nodeDir, { recursive: true });
+  }
+
+  // Send status: downloading
+  if (sendStatus) {
+    sendStatus('⏳ First time setup: Downloading Node.js (~30MB), please wait...');
+  }
+
+  // Download the zip file
+  const response = await fetch(zipUrl);
+  const buffer = await response.buffer();
+  fs.writeFileSync(zipPath, buffer);
+
+  // Send status: extracting
+  if (sendStatus) {
+    sendStatus('⏳ Extracting Node.js, please wait...');
+  }
+
+  // Extract the zip - contents will be in node-v20.11.0-win-x64 subfolder
+  await extract(zipPath, { dir: nodeDir });
+
+  // Wait for extraction to fully complete
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // Clean up zip file
+  try {
+    fs.unlinkSync(zipPath);
+  } catch (e) {}
+
+  // Send status: complete
+  if (sendStatus) {
+    sendStatus('✅ Setup complete! Starting your project...');
+  }
+
+  return { installed: true, wasInstalled: true };
+}
+
 module.exports = {
   installDependencies,
-  checkAndInstallNode
+  checkAndInstallNode,
+  getBundledNodeDir,
+  getBundledNodePath,
+  getBundledNpmPath,
+  getNpmPath,
+  getNodePath
 };
-
-async function checkAndInstallNode() {
-  try {
-    execSync('node --version', { stdio: 'ignore' });
-    return { installed: true };
-  } catch (e) {
-    const fetch = require('node-fetch');
-    const installerPath = path.join(os.tmpdir(), 'node-v20.11.0-x64.msi');
-    
-    const response = await fetch('https://nodejs.org/dist/v20.11.0/node-v20.11.0-x64.msi');
-    const buffer = await response.buffer();
-    fs.writeFileSync(installerPath, buffer);
-    
-    try {
-      execSync(`msiexec /i "${installerPath}" /quiet /norestart`, { windowsHide: true });
-    } catch (installError) {}
-    
-    return { installed: true, wasInstalled: true };
-  }
-}

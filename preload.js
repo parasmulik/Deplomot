@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getProjects: () => ipcRenderer.invoke('get-projects'),
   deleteProject: (id) => ipcRenderer.invoke('delete-project', id),
   exportProject: (projectPath) => ipcRenderer.invoke('export-project', projectPath),
+  openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   onStatusUpdate: (callback) => {
     ipcRenderer.on('status-update', (event, data) => callback(data));
   },

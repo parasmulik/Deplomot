@@ -127,6 +127,61 @@ document.addEventListener('DOMContentLoaded', () => {
     codeInput.focus();
   });
 
+  // Import button
+  const btnImport = document.getElementById('btn-import');
+  btnImport.addEventListener('click', async () => {
+    const result = await window.electronAPI.openFileDialog();
+    if (result.success && result.content) {
+      codeInput.value = result.content;
+      charCount.textContent = `${result.content.length.toLocaleString()} characters`;
+      addConsoleLog(`📂 Imported file: ${result.path.split(/[\\/]/).pop()}`, 'success');
+      saveDraft(result.content);
+    } else if (result.error) {
+      addConsoleLog(`Failed to import file: ${result.error}`, 'error');
+    }
+  });
+
+  // Drag and drop
+  const codeInputContainer = document.querySelector('.code-input-container');
+  
+  codeInput.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    codeInputContainer.classList.add('drag-over');
+  });
+
+  codeInput.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    codeInputContainer.classList.remove('drag-over');
+  });
+
+  codeInput.addEventListener('drop', (e) => {
+    e.preventDefault();
+    codeInputContainer.classList.remove('drag-over');
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      const validExtensions = ['.txt', '.js', '.html', '.css', '.json', '.py', '.ts', '.jsx', '.tsx', '.md'];
+      const ext = '.' + file.name.split('.').pop().toLowerCase();
+      
+      if (validExtensions.includes(ext)) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          codeInput.value = event.target.result;
+          charCount.textContent = `${event.target.result.length.toLocaleString()} characters`;
+          addConsoleLog(`📂 Dropped file: ${file.name}`, 'success');
+          saveDraft(event.target.result);
+        };
+        reader.onerror = () => {
+          addConsoleLog(`Failed to read file: ${file.name}`, 'error');
+        };
+        reader.readAsText(file);
+      } else {
+        addConsoleLog(`Unsupported file type: ${ext}`, 'error');
+      }
+    }
+  });
+
   // Console panel functions
   function getTimestamp() {
     const now = new Date();

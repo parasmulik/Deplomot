@@ -269,6 +269,29 @@ ipcMain.handle('update-api-key', async (event, apiKey) => {
   }
 });
 
+ipcMain.handle('open-file-dialog', async () => {
+  const { dialog } = require('electron');
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'Code Files', extensions: ['txt', 'js', 'html', 'css', 'json', 'py', 'ts', 'jsx', 'tsx', 'md'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, canceled: true };
+    }
+
+    const filePath = result.filePaths[0];
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return { success: true, content: content, path: filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle('analyze-and-run', async (event, pastedCode) => {
   const now = Date.now();
   if (lastRequestTime && (now - lastRequestTime) < RATE_LIMIT_MS) {

@@ -376,6 +376,17 @@ html {
   color: var(--danger);
 }
 
+.action-btn.gold-border {
+  border: 1px solid rgba(212, 168, 67, 0.6);
+  color: #d4a843;
+}
+
+.action-btn.gold-border:hover {
+  background: rgba(212, 168, 67, 0.15);
+  border-color: #d4a843;
+  color: #f5d07a;
+}
+
 #btn-download-zip {
   border-color: rgba(212, 168, 67, 0.5);
   color: #d4a843;

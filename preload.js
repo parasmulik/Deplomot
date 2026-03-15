@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   startTunnel: () => ipcRenderer.invoke('start-tunnel'),
   stopTunnel: () => ipcRenderer.invoke('stop-tunnel'),
+  netlifyAuth: () => ipcRenderer.invoke('netlify-auth'),
+  netlifyDeploy: (projectPath) => ipcRenderer.invoke('netlify-deploy', projectPath),
   onStatusUpdate: (callback) => {
     ipcRenderer.on('status-update', (event, data) => callback(data));
   },

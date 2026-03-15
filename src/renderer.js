@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpenFolder = document.getElementById('btn-open-folder');
   const btnStopServer = document.getElementById('btn-stop-server');
   const btnDownloadZip = document.getElementById('btn-download-zip');
+  const btnDeploy = document.getElementById('btn-deploy');
   const btnSettings = document.getElementById('btn-settings');
 
   const settingsModal = document.getElementById('settings-modal');
@@ -263,9 +264,25 @@ document.addEventListener('DOMContentLoaded', () => {
     consoleContent.innerHTML = '';
   }
 
-  function showToast(title, path) {
+  function showToast(title, path, showOpenButton = false) {
     toastTitle.textContent = title;
     toastPath.textContent = path;
+    
+    // Remove existing open button if any
+    const existingBtn = toast.querySelector('.toast-open-btn');
+    if (existingBtn) existingBtn.remove();
+    
+    if (showOpenButton && path) {
+      const openBtn = document.createElement('button');
+      openBtn.className = 'toast-open-btn';
+      openBtn.textContent = 'Open Live Site';
+      openBtn.style.cssText = 'margin-left: 12px; padding: 6px 12px; background: #d4a843; border: none; border-radius: 6px; color: #000; font-weight: 600; cursor: pointer;';
+      openBtn.onclick = () => {
+        window.electronAPI.openExternal(path);
+      };
+      toastPath.parentElement.appendChild(openBtn);
+    }
+    
     toast.classList.remove('hidden', 'hiding');
     
     setTimeout(() => {
@@ -420,26 +437,64 @@ document.addEventListener('DOMContentLoaded', () => {
     statusText.textContent = 'Stopped';
   });
 
-   btnDownloadZip.addEventListener('click', async () => {
-     if (!currentProjectPath) {
-       addConsoleLog('No project to export.', 'error');
-       return;
-     }
-     
-     addConsoleLog('Exporting project as ZIP...', 'info');
-     
-     try {
-       const result = await window.electronAPI.exportProject(currentProjectPath);
-       if (result.success) {
-         addConsoleLog('Project exported to Downloads folder!', 'success');
-         showToast('ZIP Downloaded!', result.path);
-       } else {
-         addConsoleLog(`Export failed: ${result.error}`, 'error');
-       }
-     } catch (error) {
-       addConsoleLog(`Export error: ${error.message}`, 'error');
-     }
-   });
+    btnDownloadZip.addEventListener('click', async () => {
+      if (!currentProjectPath) {
+        addConsoleLog('No project to export.', 'error');
+        return;
+      }
+      
+      addConsoleLog('Exporting project as ZIP...', 'info');
+      
+      try {
+        const result = await window.electronAPI.exportProject(currentProjectPath);
+        if (result.success) {
+          addConsoleLog('Project exported to Downloads folder!', 'success');
+          showToast('ZIP Downloaded!', result.path);
+        } else {
+          addConsoleLog(`Export failed: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        addConsoleLog(`Export error: ${error.message}`, 'error');
+      }
+    });
+
+    // Deploy button (Netlify)
+    btnDeploy.addEventListener('click', async () => {
+      if (!currentProjectPath) {
+        addConsoleLog('No project to deploy. Please run your code first.', 'error');
+        return;
+      }
+      
+      addConsoleLog('Deploying to Netlify...', 'info');
+      
+      try {
+        // First try to deploy directly
+        let result = await window.electronAPI.netlifyDeploy(currentProjectPath);
+        
+        // If not authenticated, trigger auth flow
+        if (result.error === 'not_authenticated') {
+          addConsoleLog('Please authenticate with Netlify in the popup...', 'info');
+          const authResult = await window.electronAPI.netlifyAuth();
+          
+          if (authResult.success) {
+            addConsoleLog('Authentication successful! Deploying...', 'info');
+            result = await window.electronAPI.netlifyDeploy(currentProjectPath);
+          } else {
+            addConsoleLog(`Netlify authentication failed: ${authResult.error}`, 'error');
+            return;
+          }
+        }
+        
+        if (result.success && result.url) {
+          addConsoleLog(`Deployed successfully! ${result.url}`, 'success');
+          showToast('Deployed to Netlify!', result.url, true);
+        } else {
+          addConsoleLog(`Deploy failed: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        addConsoleLog(`Deploy error: ${error.message}`, 'error');
+      }
+    });
 
    // Share button (Cloudflare Tunnel)
    const btnShare = document.getElementById('btn-share');

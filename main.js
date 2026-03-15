@@ -11,6 +11,7 @@ const { execSync, exec } = require('child_process');
 const fs = require('fs');
 const AdmZip = require('adm-zip');
 const os = require('os');
+const crypto = require('crypto');
 const configManager = require('./utils/config');
 const groqAPI = require('./utils/groq');
 const fileManager = require('./utils/fileManager');
@@ -870,6 +871,261 @@ ipcMain.handle('stop-tunnel', async () => {
       tunnelProcess = null;
     }
     return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('netlify-auth', async () => {
+  return new Promise((resolve) => {
+    const netlifyTokenPath = path.join(os.homedir(), '.deplomot', 'config.json');
+    const netlifyDir = path.join(os.homedir(), '.deplomot');
+    
+    // Check if token already exists
+    try {
+      if (fs.existsSync(netlifyTokenPath)) {
+        const config = JSON.parse(fs.readFileSync(netlifyTokenPath, 'utf8'));
+        if (config.netlifyToken) {
+          resolve({ success: true, token: config.netlifyToken });
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // Start local server to catch OAuth callback
+    const http = require('http');
+    const server = http.createServer((req, res) => {
+      const parsedUrl = new URL(req.url, 'http://localhost:54321');
+      
+      // Route 1: /callback - browser sends hash fragment here, return HTML to extract it
+      if (req.url && req.url.startsWith('/callback')) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<html><body><script>
+          const hash = window.location.hash.substring(1);
+          const params = new URLSearchParams(hash);
+          const token = params.get('access_token');
+          if (token) {
+            fetch('/token?access_token=' + token)
+              .then(() => { document.body.innerHTML = '<h1>Deplomot connected! You can close this tab.</h1>'; })
+              .catch(() => { document.body.innerHTML = '<h1>Error connecting. Please try again.</h1>'; });
+          } else {
+            document.body.innerHTML = '<h1>No access token received. Please try again.</h1>';
+          }
+        </script></body></html>`);
+        return;
+      }
+      
+      // Route 2: /token - extract token from query param and save
+      if (req.url && req.url.startsWith('/token')) {
+        const token = parsedUrl.searchParams.get('access_token');
+        
+        if (token) {
+          // Save token
+          if (!fs.existsSync(netlifyDir)) {
+            fs.mkdirSync(netlifyDir, { recursive: true });
+          }
+          let config = {};
+          try {
+            config = JSON.parse(fs.readFileSync(netlifyTokenPath, 'utf8'));
+          } catch (e) {}
+          config.netlifyToken = token;
+          fs.writeFileSync(netlifyTokenPath, JSON.stringify(config, null, 2));
+          
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end('<html><body><h1>Token saved!</h1></body></html>');
+          server.close();
+          resolve({ success: true, token });
+          return;
+        }
+      }
+      
+      // Default: invalid route
+      res.writeHead(400, { 'Content-Type': 'text/html' });
+      res.end('<html><body><h1>Invalid request</h1></body></html>');
+      server.close();
+      resolve({ success: false, error: 'Invalid callback' });
+    });
+
+    server.listen(54321, () => {
+      // Open Netlify auth URL with implicit grant (response_type=token)
+      const authUrl = 'https://app.netlify.com/authorize?client_id=f6AY_48ea5WJbB4m3jQ5rb71vHX99s5KhpvdQhgfRhI&response_type=token&redirect_uri=http://localhost:54321/callback';
+      shell.openExternal(authUrl);
+    });
+
+    // Timeout after 2 minutes
+    setTimeout(() => {
+      server.close();
+      resolve({ success: false, error: 'Authentication timed out' });
+    }, 120000);
+  });
+});
+
+ipcMain.handle('netlify-deploy', async (event, projectPath) => {
+  try {
+    const netlifyTokenPath = path.join(os.homedir(), '.deplomot', 'config.json');
+    
+    // Read token
+    let token = null;
+    try {
+      if (fs.existsSync(netlifyTokenPath)) {
+        const config = JSON.parse(fs.readFileSync(netlifyTokenPath, 'utf8'));
+        token = config.netlifyToken;
+      }
+    } catch (e) {}
+
+    if (!token) {
+      return { success: false, error: 'not_authenticated', message: 'Please authenticate with Netlify first' };
+    }
+
+    const projectDir = path.join(os.homedir(), 'Desktop', 'deplomot-project');
+    console.log('Project path:', projectDir);
+    
+    if (!fs.existsSync(projectDir)) {
+      return { success: false, error: 'Project directory not found: ' + projectDir };
+    }
+    
+    console.log('Files found:', fs.readdirSync(projectDir));
+
+    // Detect if project is a Node.js backend by checking package.json dependencies
+    const packageJsonPath = path.join(projectDir, 'package.json');
+    let isNodeApp = false;
+    
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      const deps = Object.keys(packageJson.dependencies || {});
+      const isAutoGenerated = packageJson.name === 'Deplomot-backend';
+      isNodeApp = !isAutoGenerated && (deps.includes('express') || deps.includes('koa') || deps.includes('fastify'));
+    }
+    
+    if (isNodeApp) {
+      return { success: false, error: 'Node.js apps cannot be deployed to Netlify. Use the Share button for a temporary URL instead.' };
+    }
+
+    // For static apps, deploy from public/ directory
+    const deployDir = fs.existsSync(path.join(projectDir, 'public')) 
+      ? path.join(projectDir, 'public') 
+      : projectDir;
+    console.log('Deploying from:', deployDir);
+
+    const fetch = require('node-fetch');
+
+    // Step 1: Read all files and calculate SHA1 hashes
+    function getFilesWithHashes(dir, baseDir) {
+      if (!baseDir) baseDir = dir;
+      const files = {};
+      
+      try {
+        const items = fs.readdirSync(dir);
+        for (const item of items) {
+          if (item === 'node_modules' || item === '.git' || item === 'database') continue;
+          
+          const fullPath = path.join(dir, item);
+          const stat = fs.statSync(fullPath);
+          const relativePath = '/' + path.relative(baseDir, fullPath).replace(/\\/g, '/');
+          
+          if (stat.isDirectory()) {
+            const subFiles = getFilesWithHashes(fullPath, baseDir);
+            Object.assign(files, subFiles);
+          } else {
+            const content = fs.readFileSync(fullPath);
+            const hash = crypto.createHash('sha1').update(content).digest('hex');
+            files[relativePath] = hash;
+          }
+        }
+      } catch (err) {
+        console.error('Error reading files:', err);
+      }
+      
+      return files;
+    }
+
+    // Step 2: Create a new site
+    const siteResponse = await fetch('https://api.netlify.com/api/v1/sites', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: `deplomot-${Date.now()}` })
+    });
+
+    if (!siteResponse.ok) {
+      const err = await siteResponse.text();
+      return { success: false, error: `Failed to create site: ${err}` };
+    }
+
+    const site = await siteResponse.json();
+    console.log('Site object:', JSON.stringify(site));
+
+    // Step 3: Create a deploy with file hashes
+    const filesMap = getFilesWithHashes(deployDir);
+    console.log('Files found in map:', Object.keys(filesMap));
+    
+    const deployResponse = await fetch(`https://api.netlify.com/api/v1/sites/${site.id}/deploys`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ files: filesMap })
+    });
+
+    if (!deployResponse.ok) {
+      const err = await deployResponse.text();
+      return { success: false, error: `Failed to create deploy: ${err}` };
+    }
+
+    const deploy = await deployResponse.json();
+    console.log('Deploy response:', JSON.stringify(deploy));
+
+    // Step 4: Upload required files
+    console.log('Files in map:', Object.keys(filesMap).length);
+    console.log('Required files:', deploy.required ? deploy.required.length : 0);
+    
+    if (deploy.required) {
+      for (const [filePath, hash] of Object.entries(filesMap)) {
+        if (deploy.required.includes(hash)) {
+          const fullPath = path.join(deploySourceDir, filePath.substring(1)); // Remove leading /
+          try {
+            const content = fs.readFileSync(fullPath);
+            await fetch(`https://api.netlify.com/api/v1/deploys/${deploy.id}/files${filePath}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/octet-stream',
+                'Content-Length': content.length
+              },
+              body: content
+            });
+          } catch (e) {
+            console.error(`Failed to upload ${filePath}:`, e.message);
+          }
+        }
+      }
+    }
+
+    console.log('Deploy state:', deploy.state);
+
+    // Wait for deploy to be ready
+    const checkDeploy = async (deployId, token) => {
+      for (let i = 0; i < 30; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const res = await fetch(`https://api.netlify.com/api/v1/deploys/${deployId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const d = await res.json();
+        console.log('Deploy state:', d.state);
+        if (d.state === 'ready') return d;
+        if (d.state === 'error') throw new Error(d.error_message);
+      }
+      throw new Error('Deploy timed out');
+    };
+    const readyDeploy = await checkDeploy(deploy.id, token);
+    console.log('Deploy ready! URL:', readyDeploy.ssl_url);
+
+    // Return the site URL
+    const siteUrl = readyDeploy.ssl_url || site.ssl_url || site.url || `https://${site.name}.netlify.app`;
+    return { success: true, url: siteUrl };
   } catch (error) {
     return { success: false, error: error.message };
   }

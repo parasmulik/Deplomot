@@ -11,17 +11,17 @@ function getNodePath() {
   return dependencyInstaller.getBundledNodePath();
 }
 
-function startServer(backendDir, serverFile) {
+function startServer(projectRoot, serverFile) {
   return new Promise((resolve) => {
     // Kill any existing server
     stopServer();
 
-    const serverFilePath = path.join(backendDir, serverFile);
+    const serverFilePath = path.join(projectRoot, serverFile);
 
     if (!fs.existsSync(serverFilePath)) {
       resolve({
         success: false,
-        error: `Server file "${serverFile}" not found in the backend folder.`
+        error: `Server file "${serverFile}" not found in the project folder.`
       });
       return;
     }
@@ -42,7 +42,7 @@ function startServer(backendDir, serverFile) {
     }
 
     serverProcess = spawn(nodeCmd, [serverFile], {
-      cwd: backendDir,
+      cwd: projectRoot,
       env: env,
       shell: true,
       stdio: 'pipe',
@@ -150,9 +150,43 @@ function startServer(backendDir, serverFile) {
   });
 }
 
-function startStaticServer(frontendDir) {
+function startStaticServer(projectRoot) {
   return new Promise((resolve) => {
     stopServer();
+
+    console.log('[StaticServer] projectRoot:', projectRoot);
+
+    // Check multiple possible locations for static files in order
+    const possibleLocations = [
+      path.join(projectRoot, 'public'),
+      path.join(projectRoot, 'frontend'),
+      projectRoot
+    ];
+
+    let staticDir = null;
+    for (const location of possibleLocations) {
+      console.log('[StaticServer] Checking:', location, 'exists:', fs.existsSync(location));
+      if (fs.existsSync(location) && hasFrontendFiles(location)) {
+        staticDir = location;
+        console.log('[StaticServer] Found staticDir:', staticDir);
+        break;
+      }
+    }
+
+    // If none of the preferred locations have frontend files, fallback to frontend directory
+    if (!staticDir) {
+      staticDir = path.join(projectRoot, 'public');
+      console.log('[StaticServer] Using fallback staticDir:', staticDir);
+      // Create the directory if it doesn't exist to prevent errors
+      if (!fs.existsSync(staticDir)) {
+        fs.mkdirSync(staticDir, { recursive: true });
+      }
+    }
+
+    // Log what files exist in staticDir
+    if (fs.existsSync(staticDir)) {
+      console.log('[StaticServer] Files in', staticDir, ':', fs.readdirSync(staticDir));
+    }
 
     try {
       const express = require('express');
@@ -160,18 +194,33 @@ function startStaticServer(frontendDir) {
       const cors = require('cors');
 
       app.use(cors());
-      app.use(express.static(frontendDir));
+      app.use(express.static(staticDir, { index: ['index.html', 'index.htm'] }));
+
+      app.get('/', (req, res) => {
+        const indexPath = path.join(staticDir, 'index.html');
+        if (fs.existsSync(indexPath)) {
+          res.sendFile(indexPath);
+        } else {
+          const files = fs.readdirSync(staticDir);
+          const htmlFile = files.find(f => f.endsWith('.html'));
+          if (htmlFile) {
+            res.sendFile(path.join(staticDir, htmlFile));
+          } else {
+            res.send('<h1>No HTML file found</h1>');
+          }
+        }
+      });
 
       app.get('*', (req, res) => {
-        const indexPath = path.join(frontendDir, 'index.html');
+        const indexPath = path.join(staticDir, 'index.html');
         if (fs.existsSync(indexPath)) {
           res.sendFile(indexPath);
         } else {
           // Find any HTML file
-          const files = fs.readdirSync(frontendDir);
+          const files = fs.readdirSync(staticDir);
           const htmlFile = files.find(f => f.endsWith('.html'));
           if (htmlFile) {
-            res.sendFile(path.join(frontendDir, htmlFile));
+            res.sendFile(path.join(staticDir, htmlFile));
           } else {
             res.send('<h1>No HTML file found</h1>');
           }
@@ -192,10 +241,10 @@ function startStaticServer(frontendDir) {
       // Fallback: use http module
       try {
         const httpServer = http.createServer((req, res) => {
-          let filePath = path.join(frontendDir, req.url === '/' ? 'index.html' : req.url);
+          let filePath = path.join(staticDir, req.url === '/' ? 'index.html' : req.url);
           
           if (!fs.existsSync(filePath)) {
-            filePath = path.join(frontendDir, 'index.html');
+            filePath = path.join(staticDir, 'index.html');
           }
 
           if (fs.existsSync(filePath)) {
@@ -235,6 +284,19 @@ function startStaticServer(frontendDir) {
       }
     }
   });
+}
+
+// Helper function to check if a directory contains frontend files
+function hasFrontendFiles(dir) {
+  try {
+    const files = fs.readdirSync(dir);
+    return files.some(file => {
+      const lowerCase = file.toLowerCase();
+      return lowerCase === 'index.html' || lowerCase.endsWith('.html');
+    });
+  } catch (err) {
+    return false;
+  }
 }
 
 function checkServerHealth(url) {

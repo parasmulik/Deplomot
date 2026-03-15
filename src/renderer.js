@@ -413,26 +413,98 @@ document.addEventListener('DOMContentLoaded', () => {
     statusText.textContent = 'Stopped';
   });
 
-  btnDownloadZip.addEventListener('click', async () => {
-    if (!currentProjectPath) {
-      addConsoleLog('No project to export.', 'error');
-      return;
-    }
-    
-    addConsoleLog('Exporting project as ZIP...', 'info');
-    
-    try {
-      const result = await window.electronAPI.exportProject(currentProjectPath);
-      if (result.success) {
-        addConsoleLog('Project exported to Downloads folder!', 'success');
-        showToast('ZIP Downloaded!', result.path);
-      } else {
-        addConsoleLog(`Export failed: ${result.error}`, 'error');
-      }
-    } catch (error) {
-      addConsoleLog(`Export error: ${error.message}`, 'error');
-    }
-  });
+   btnDownloadZip.addEventListener('click', async () => {
+     if (!currentProjectPath) {
+       addConsoleLog('No project to export.', 'error');
+       return;
+     }
+     
+     addConsoleLog('Exporting project as ZIP...', 'info');
+     
+     try {
+       const result = await window.electronAPI.exportProject(currentProjectPath);
+       if (result.success) {
+         addConsoleLog('Project exported to Downloads folder!', 'success');
+         showToast('ZIP Downloaded!', result.path);
+       } else {
+         addConsoleLog(`Export failed: ${result.error}`, 'error');
+       }
+     } catch (error) {
+       addConsoleLog(`Export error: ${error.message}`, 'error');
+     }
+   });
+
+   // Share button (Cloudflare Tunnel)
+   const btnShare = document.getElementById('btn-share');
+   let isSharing = false;
+   
+   btnShare.addEventListener('click', async () => {
+     if (!currentPreviewUrl) {
+       addConsoleLog('No preview URL available. Please run your code first.', 'error');
+       return;
+     }
+     
+     if (isSharing) {
+       // Stop tunnel
+       await window.electronAPI.stopTunnel();
+       btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
+       btnShare.title = 'Share via Cloudflare Tunnel';
+       addConsoleLog('Tunnel stopped.', 'warning');
+       isSharing = false;
+       return;
+     }
+     
+     // Start tunnel
+     isSharing = true;
+     btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 9a4 4 0 004-4 4 4 0 014 4h2a6 6 0 00-6-6 6 6 0 00-6 6zm10 0a4 4 0 01-4 4 4 4 0 00-4-4h-2a6 6 0 016-6 6 6 0 016 6z"/></svg> ⏹ Stop Sharing';
+     btnShare.title = 'Stop sharing';
+     addConsoleLog('Creating public URL...', 'info');
+     
+     try {
+       const result = await window.electronAPI.startTunnel();
+       if (result.success && result.url) {
+         addConsoleLog(`Public URL created: ${result.url}`, 'success');
+         
+         // Create URL display
+         const tunnelUrlDiv = document.createElement('div');
+         tunnelUrlDiv.className = 'tunnel-url-box';
+         tunnelUrlDiv.innerHTML = `
+           <div class="tunnel-url-label">Public URL:</div>
+           <div class="tunnel-url-content">
+             <span class="tunnel-url">${result.url}</span>
+             <button class="tunnel-copy-btn" title="Copy URL">📋 Copy</button>
+           </div>
+            <div class="tunnel-hint">⚠️ Active while Deplomot is open · max 24 hours</div>
+         `;
+         
+         // Insert after share button in actions section
+         const actionsSection = document.getElementById('actions-section');
+         actionsSection.appendChild(tunnelUrlDiv);
+         
+         // Add copy button handler
+         const copyBtn = tunnelUrlDiv.querySelector('.tunnel-copy-btn');
+         copyBtn.addEventListener('click', async () => {
+           await navigator.clipboard.writeText(result.url);
+           copyBtn.textContent = 'Copied!';
+           setTimeout(() => {
+             copyBtn.textContent = '📋 Copy';
+           }, 1500);
+         });
+         
+         showToast('Public URL created!', result.url);
+       } else {
+         addConsoleLog(`Tunnel failed: ${result.error || 'Unknown error'}`, 'error');
+         isSharing = false;
+         btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 002-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
+         btnShare.title = 'Share via Cloudflare Tunnel';
+       }
+     } catch (error) {
+       addConsoleLog(`Tunnel error: ${error.message}`, 'error');
+       isSharing = false;
+       btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 002-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
+       btnShare.title = 'Share via Cloudflare Tunnel';
+     }
+   });
 
   // Settings (About)
   btnSettings.addEventListener('click', async () => {

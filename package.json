@@ -14,6 +14,13 @@
   "build": {
     "appId": "com.deplomot.app",
     "productName": "Deplomot",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/archiver/**",
+      "node_modules/archiver-utils/**",
+      "node_modules/zip-stream/**",
+      "node_modules/compress-commons/**"
+    ],
     "directories": {
       "output": "dist"
     },
@@ -38,7 +45,7 @@
     ]
   },
   "dependencies": {
-    "archiver": "^6.0.2",
+    "adm-zip": "^0.5.16",
     "extract-zip": "^2.0.1",
     "node-fetch": "^2.7.0",
     "tree-kill": "^1.2.2"

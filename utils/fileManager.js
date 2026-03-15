@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { execSync, exec } = require('child_process');
 
 function getProjectPath() {
   const desktop = path.join(os.homedir(), 'Desktop');
@@ -127,6 +127,11 @@ async function cleanDir(dirPath) {
       if (attempt === MAX_RETRIES) {
         // Last resort: try to just overwrite files instead of deleting
         console.error('[FileManager] All delete attempts failed. Attempting to write over existing files...');
+        
+        // Force kill node processes that might be holding files
+        exec('taskkill /F /IM node.exe', () => {});
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         try {
           ensureDir(dirPath);
           return;
@@ -151,13 +156,12 @@ async function createProject(analysis) {
   // Clean and recreate with retry logic
   await cleanDir(projectPath);
 
-  const frontendPath = path.join(projectPath, 'frontend');
-  const backendPath = path.join(projectPath, 'backend');
-
+  const frontendPath = path.join(projectPath, 'public');
+  const backendPath = projectPath; // Backend files go directly to project root
   ensureDir(frontendPath);
   ensureDir(backendPath);
 
-  // Write frontend files
+  // Write frontend files to public/ directory
   if (analysis.frontend && analysis.frontend.files) {
     for (const file of analysis.frontend.files) {
       const filePath = path.join(frontendPath, file.filename);
@@ -167,7 +171,7 @@ async function createProject(analysis) {
     }
   }
 
-  // Write backend files
+  // Write backend files directly to project root
   if (analysis.backend && analysis.backend.files) {
     for (const file of analysis.backend.files) {
       const filePath = path.join(backendPath, file.filename);

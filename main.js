@@ -7,19 +7,21 @@ const {
   Menu
 } = require('electron');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, exec } = require('child_process');
 const fs = require('fs');
-const archiver = require('archiver');
+const AdmZip = require('adm-zip');
 const os = require('os');
 const configManager = require('./utils/config');
 const groqAPI = require('./utils/groq');
 const fileManager = require('./utils/fileManager');
 const serverManager = require('./utils/serverManager');
 const dependencyInstaller = require('./utils/dependencyInstaller');
+const cloudflared = require('./utils/cloudflared');
 
 let mainWindow = null;
 let setupWindow = null;
 let previewWindow = null;
+let tunnelProcess = null;
 let lastRequestTime = 0;
 const RATE_LIMIT_MS = 10000;
 
@@ -303,6 +305,23 @@ ipcMain.handle('analyze-and-run', async (event, pastedCode) => {
   }
   lastRequestTime = now;
 
+  // Force kill any process using port 3847
+  await new Promise((resolve) => {
+    exec('netstat -ano | findstr :3847', (err, stdout) => {
+      if (stdout) {
+        const lines = stdout.split('\n');
+        lines.forEach(line => {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && !isNaN(pid) && parseInt(pid) > 0) {
+            exec(`taskkill /PID ${pid} /F`, () => {});
+          }
+        });
+      }
+      setTimeout(resolve, 2000);
+    });
+  });
+
   try {
     // Check/install bundled Node.js with status callback
     const sendStatus = (message) => {
@@ -372,7 +391,7 @@ ipcMain.handle('analyze-and-run', async (event, pastedCode) => {
         message: 'Installing backend dependencies... This may take a moment.'
       });
 
-      const backendPath = path.join(projectPath, 'backend');
+      const backendPath = projectPath;
       const installResult = await dependencyInstaller.installDependencies(
         backendPath,
         analysisResult.dependencies.backend
@@ -394,7 +413,7 @@ ipcMain.handle('analyze-and-run', async (event, pastedCode) => {
         message: 'Installing frontend dependencies...'
       });
 
-      const frontendPath = path.join(projectPath, 'frontend');
+      const frontendPath = path.join(projectPath, 'public');
       await dependencyInstaller.installDependencies(
         frontendPath,
         analysisResult.dependencies.frontend
@@ -419,7 +438,7 @@ ipcMain.handle('analyze-and-run', async (event, pastedCode) => {
         message: 'Starting your website...'
       });
 
-      const backendPath = path.join(projectPath, 'backend');
+      const backendPath = projectPath;
 
       // Find the main server file
       let serverFile = 'server.js';
@@ -445,7 +464,7 @@ ipcMain.handle('analyze-and-run', async (event, pastedCode) => {
         message: 'Starting static file server...'
       });
 
-      const frontendPath = path.join(projectPath, 'frontend');
+      const frontendPath = path.join(projectPath, 'public');
       const serverResult = await serverManager.startStaticServer(frontendPath);
 
       if (!serverResult.success) {
@@ -465,7 +484,9 @@ ipcMain.handle('analyze-and-run', async (event, pastedCode) => {
     });
 
     // Open preview window
+    console.log('[analyze-and-run] About to create preview window with URL:', previewUrl);
     createPreviewWindow(previewUrl);
+    console.log('[analyze-and-run] Preview window created, minimizing main window');
     mainWindow.minimize();
 
     // Build file list for results panel
@@ -568,7 +589,7 @@ ipcMain.handle('ai-fix', async (event, { originalCode, errorMessage, projectFile
         message: '🔧 Installing dependencies...'
       });
 
-      const backendPath = path.join(projectPath, 'backend');
+      const backendPath = projectPath;
       const installResult = await dependencyInstaller.installDependencies(
         backendPath,
         fixedAnalysis.dependencies.backend
@@ -598,7 +619,7 @@ ipcMain.handle('ai-fix', async (event, { originalCode, errorMessage, projectFile
         message: '🔧 Starting fixed server...'
       });
 
-      const backendPath = path.join(projectPath, 'backend');
+      const backendPath = projectPath;
       let serverFile = 'server.js';
       const backendFiles = fixedAnalysis.backend.files.map(f => f.filename);
       if (backendFiles.includes('app.js') && !backendFiles.includes('server.js')) {
@@ -615,7 +636,7 @@ ipcMain.handle('ai-fix', async (event, { originalCode, errorMessage, projectFile
         };
       }
     } else if (hasFrontend) {
-      const frontendPath = path.join(projectPath, 'frontend');
+      const frontendPath = path.join(projectPath, 'public');
       const serverResult = await serverManager.startStaticServer(frontendPath);
       if (!serverResult.success) {
         return { success: false, error: `Static server failed: ${serverResult.error}` };
@@ -675,9 +696,14 @@ function autoWireUrls(analysis) {
   ];
 
   if (analysis.frontend && analysis.frontend.files) {
+    console.log('[autoWireUrls] Processing frontend files:', analysis.frontend.files.map(f => f.filename));
     analysis.frontend.files = analysis.frontend.files.map(file => {
       let content = file.content;
       localhostPatterns.forEach(pattern => {
+        const matches = content.match(pattern);
+        if (matches) {
+          console.log('[autoWireUrls] Found URL in', file.filename, ':', matches);
+        }
         content = content.replace(pattern, `http://localhost:${backendPort}`);
       });
       return { ...file, content };
@@ -687,15 +713,11 @@ function autoWireUrls(analysis) {
   if (analysis.backend && analysis.backend.files) {
     analysis.backend.files = analysis.backend.files.map(file => {
       let content = file.content;
+      
+      console.log('[autoWireUrls] Before - looking for port in', file.filename);
+      console.log('[autoWireUrls] Content sample:', content.substring(0, 500));
+      
       // Fix port in backend files
-      const portPatterns = [
-        /const\s+PORT\s*=\s*process\.env\.PORT\s*\|\|\s*\d+/g,
-        /const\s+port\s*=\s*process\.env\.PORT\s*\|\|\s*\d+/g,
-        /let\s+PORT\s*=\s*process\.env\.PORT\s*\|\|\s*\d+/g,
-        /let\s+port\s*=\s*process\.env\.PORT\s*\|\|\s*\d+/g,
-        /\.listen\(\s*\d+/g,
-      ];
-
       content = content.replace(
         /const\s+(PORT|port)\s*=\s*(?:process\.env\.PORT\s*\|\|\s*)?\d+/g,
         `const PORT = process.env.PORT || ${backendPort}`
@@ -705,9 +727,31 @@ function autoWireUrls(analysis) {
         `const PORT = process.env.PORT || ${backendPort}`
       );
       content = content.replace(
+        /var\s+(PORT|port)\s*=\s*(?:process\.env\.PORT\s*\|\|\s*)?\d+/g,
+        `const PORT = process.env.PORT || ${backendPort}`
+      );
+      content = content.replace(
+        /app\.listen\(\s*(PORT|port)\s*,/g,
+        `app.listen(${backendPort},`
+      );
+      content = content.replace(
         /app\.listen\(\s*\d+/g,
         `app.listen(${backendPort}`
       );
+       
+      // Fix frontend static path: if AI added '../frontend', change to path.join(__dirname, 'public')
+      console.log('[autoWireUrls] Before path fix - checking for ../frontend');
+      content = content.replace(/\.\.\/frontend/g, "path.join(__dirname, 'public')");
+      content = content.replace(/'\/frontend'/g, "'/public'");
+      content = content.replace(/"\/frontend"/g, '"/public"');
+      // Also fix path.join(__dirname, '../frontend') patterns
+      content = content.replace(/path\.join\(__dirname,\s*['"]\.\.\/frontend['"]\)/g, "path.join(__dirname, 'public')");
+      console.log('[autoWireUrls] After path fix - checking result');
+      if (content.includes('../frontend') || content.includes('/frontend')) {
+        console.log('[autoWireUrls] WARNING: frontend path still in content!');
+      }
+
+      console.log('[autoWireUrls] After - sample:', content.substring(0, 500));
 
       return { ...file, content };
     });
@@ -717,13 +761,21 @@ function autoWireUrls(analysis) {
   if (analysis.frontend && analysis.frontend.files && analysis.frontend.files.length > 0 &&
       analysis.backend && analysis.backend.files && analysis.backend.files.length > 0) {
 
-    const mainServerFile = analysis.backend.files.find(
-      f => f.filename === 'server.js' || f.filename === 'app.js' || f.filename === 'index.js'
+    const backendFiles = (analysis.backend && analysis.backend.files) || analysis.files || [];
+    const mainServerFile = backendFiles.find(f => 
+      f.filename === 'server.js' || 
+      f.filename === 'app.js' || 
+      f.filename === 'index.js'
     );
 
     if (mainServerFile && !mainServerFile.content.includes('express.static')) {
+      // Add path require if not present
+      if (!mainServerFile.content.includes("const path = require('path')")) {
+        mainServerFile.content = "const path = require('path');\n" + mainServerFile.content;
+      }
+
       // Add static file serving for frontend
-      const staticServeCode = `\n// Serve frontend files\nconst frontendPath = require('path').join(__dirname, '..', 'frontend');\napp.use(require('express').static(frontendPath));\n`;
+      const staticServeCode = `\n// Serve frontend files\napp.use(express.static(path.join(__dirname, 'public')));\n\n// Catch-all route for SPA\napp.get('*', (req, res) => {\n  res.sendFile(path.join(__dirname, 'public', 'index.html'));\n});\n`;
 
       // Try to insert before the listen call
       const listenIndex = mainServerFile.content.lastIndexOf('app.listen(');
@@ -777,19 +829,48 @@ ipcMain.handle('export-project', async (event, projectPath) => {
     const zipFileName = `deplomot-export-${timestamp}.zip`;
     const zipPath = path.join(downloadsPath, zipFileName);
     
-    const output = fs.createWriteStream(zipPath);
-    const archive = archiver('zip', { zlib: { level: 9 } });
-    
-    output.on('close', () => {
+    try {
+      const zip = new AdmZip();
+      zip.addLocalFolder(projectPath);
+      zip.writeZip(zipPath);
       resolve({ success: true, path: zipPath });
-    });
-    
-    archive.on('error', (err) => {
+    } catch (err) {
       resolve({ success: false, error: err.message });
-    });
-    
-    archive.pipe(output);
-    archive.directory(projectPath, false);
-    archive.finalize();
+    }
   });
+});
+
+ipcMain.handle('start-tunnel', async () => {
+  try {
+    const installResult = await cloudflared.checkAndInstallCloudflared((status) => {
+      mainWindow.webContents.send('status-update', { step: 'tunnel', message: status });
+    });
+
+    if (!installResult.installed) {
+      return { success: false, error: 'Failed to install cloudflared' };
+    }
+
+    const result = await cloudflared.startTunnel(3847);
+    
+    if (result.success && result.process) {
+      tunnelProcess = result.process;
+      return { success: true, url: result.url };
+    }
+    
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('stop-tunnel', async () => {
+  try {
+    if (tunnelProcess) {
+      await cloudflared.stopTunnel(tunnelProcess);
+      tunnelProcess = null;
+    }
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });

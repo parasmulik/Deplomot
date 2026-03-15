@@ -65,7 +65,7 @@ IMPORTANT RULES:
 11. Make sure every file has complete, working content. Never use placeholders.
 12. If the code seems to be a full-stack app, ensure the backend has cors enabled.
 13. For any backend using Express, ensure it includes: const cors = require('cors'); app.use(cors());
-14. If you create a backend that serves the frontend, add express.static middleware pointing to '../frontend'.
+14. If you create a backend that serves the frontend, add express.static middleware pointing to 'public' using: app.use(express.static(path.join(__dirname, 'public')));
 15. Always make sure the backend has a package.json file with all needed dependencies listed.`;
 
 async function makeRequest(apiKey, code) {
@@ -191,10 +191,10 @@ const PORT = process.env.PORT || 3847;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {

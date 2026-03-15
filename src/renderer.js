@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentProjectPath = '';
   let currentPreviewUrl = '';
+  let tunnelActive = false;
   let lastPastedCode = '';
   let currentSummary = '';
   let projects = [];
@@ -335,6 +336,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (tunnelActive) {
+      const confirmed = confirm("Starting a new project will close the current tunnel URL. Continue?");
+      if (!confirmed) return;
+      tunnelActive = false;
+    }
+
     lastPastedCode = code;
     showLoading();
     addConsoleLog('Starting code analysis...', 'info');
@@ -449,9 +456,10 @@ document.addEventListener('DOMContentLoaded', () => {
        await window.electronAPI.stopTunnel();
        btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
        btnShare.title = 'Share via Cloudflare Tunnel';
-       addConsoleLog('Tunnel stopped.', 'warning');
-       isSharing = false;
-       return;
+        addConsoleLog('Tunnel stopped.', 'warning');
+        isSharing = false;
+        tunnelActive = false;
+        return;
      }
      
      // Start tunnel
@@ -462,8 +470,9 @@ document.addEventListener('DOMContentLoaded', () => {
      
      try {
        const result = await window.electronAPI.startTunnel();
-       if (result.success && result.url) {
-         addConsoleLog(`Public URL created: ${result.url}`, 'success');
+        if (result.success && result.url) {
+          tunnelActive = true;
+          addConsoleLog(`Public URL created: ${result.url}`, 'success');
          
          // Create URL display
          const tunnelUrlDiv = document.createElement('div');
@@ -492,16 +501,18 @@ document.addEventListener('DOMContentLoaded', () => {
          });
          
          showToast('Public URL created!', result.url);
-       } else {
-         addConsoleLog(`Tunnel failed: ${result.error || 'Unknown error'}`, 'error');
-         isSharing = false;
-         btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 002-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
-         btnShare.title = 'Share via Cloudflare Tunnel';
-       }
-     } catch (error) {
-       addConsoleLog(`Tunnel error: ${error.message}`, 'error');
-       isSharing = false;
-       btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 002-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
+        } else {
+          addConsoleLog(`Tunnel failed: ${result.error || 'Unknown error'}`, 'error');
+          isSharing = false;
+          tunnelActive = false;
+          btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 002-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
+          btnShare.title = 'Share via Cloudflare Tunnel';
+        }
+      } catch (error) {
+        addConsoleLog(`Tunnel error: ${error.message}`, 'error');
+        isSharing = false;
+        tunnelActive = false;
+        btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 002-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
        btnShare.title = 'Share via Cloudflare Tunnel';
      }
    });

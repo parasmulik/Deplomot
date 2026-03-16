@@ -18,6 +18,7 @@ const fileManager = require('./utils/fileManager');
 const serverManager = require('./utils/serverManager');
 const dependencyInstaller = require('./utils/dependencyInstaller');
 const cloudflared = require('./utils/cloudflared');
+const { autoUpdater } = require('electron-updater');
 
 let mainWindow = null;
 let setupWindow = null;
@@ -210,6 +211,13 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
   createMainWindow();
+
+  // Check for updates after 3 seconds
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch(err => {
+      console.log('Update check failed:', err.message);
+    });
+  }, 3000);
 
   mainWindow.webContents.send('status-update', {
     step: 'setup',
@@ -1129,4 +1137,44 @@ ipcMain.handle('netlify-deploy', async (event, projectPath) => {
   } catch (error) {
     return { success: false, error: error.message };
   }
+});
+
+// Auto updater event handlers
+autoUpdater.autoDownload = false;
+
+autoUpdater.on('update-available', (info) => {
+  console.log('Update available:', info.version);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-available', info.version);
+  }
+});
+
+autoUpdater.on('update-not-available', () => {
+  console.log('App is up to date');
+});
+
+autoUpdater.on('download-progress', (progress) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-progress', Math.round(progress.percent));
+  }
+});
+
+autoUpdater.on('update-downloaded', () => {
+  console.log('Update downloaded');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-downloaded');
+  }
+});
+
+autoUpdater.on('error', (err) => {
+  console.log('Auto updater error:', err.message);
+});
+
+// IPC handlers for updates
+ipcMain.handle('download-update', () => {
+  autoUpdater.downloadUpdate();
+});
+
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall();
 });

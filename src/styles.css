@@ -27,6 +27,45 @@
   --radius-xl: 18px;
 }
 
+.update-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #0d0d0d;
+  border-bottom: 1px solid rgba(212, 168, 67, 0.5);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 10001;
+}
+
+.update-bar.hidden {
+  display: none;
+}
+
+.update-bar .update-message {
+  color: #d4a843;
+  font-size: 13px;
+}
+
+.update-bar .update-btn {
+  padding: 6px 16px;
+  background: #d4a843;
+  border: none;
+  border-radius: 6px;
+  color: #000;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.update-bar .update-btn:hover {
+  background: #f5d07a;
+}
+
 body {
   background: var(--bg-primary);
   color: var(--text-primary);

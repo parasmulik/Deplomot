@@ -346,6 +346,37 @@ document.addEventListener('DOMContentLoaded', () => {
     loadingSubtitle.textContent = subtitles[data.step] || '';
   });
 
+  // Update bar elements
+  const updateBar = document.getElementById('update-bar');
+  const updateMessage = document.getElementById('update-message');
+  const updateBtn = document.getElementById('update-btn');
+
+  // Auto-update handlers
+  window.electronAPI.onUpdateAvailable((version) => {
+    updateMessage.textContent = `A new version (${version}) is available.`;
+    updateBtn.textContent = 'Download';
+    updateBtn.onclick = () => {
+      window.electronAPI.downloadUpdate();
+      updateBtn.textContent = 'Downloading...';
+      updateBtn.disabled = true;
+    };
+    updateBar.classList.remove('hidden');
+  });
+
+  window.electronAPI.onUpdateProgress((percent) => {
+    updateMessage.textContent = `Downloading update... ${percent}%`;
+  });
+
+  window.electronAPI.onUpdateDownloaded(() => {
+    updateMessage.textContent = 'Update ready to install!';
+    updateBtn.textContent = 'Install Now';
+    updateBtn.disabled = false;
+    updateBtn.onclick = () => {
+      window.electronAPI.installUpdate();
+    };
+    updateBar.classList.remove('hidden');
+  });
+
   // Run button
   btnRun.addEventListener('click', async () => {
     const code = codeInput.value.trim();

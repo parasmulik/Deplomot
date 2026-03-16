@@ -21,6 +21,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   stopTunnel: () => ipcRenderer.invoke('stop-tunnel'),
   netlifyAuth: () => ipcRenderer.invoke('netlify-auth'),
   netlifyDeploy: (projectPath) => ipcRenderer.invoke('netlify-deploy', projectPath),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.on('update-available', (event, version) => callback(version));
+  },
+  onUpdateProgress: (callback) => {
+    ipcRenderer.on('update-progress', (event, percent) => callback(percent));
+  },
+  onUpdateDownloaded: (callback) => {
+    ipcRenderer.on('update-downloaded', () => callback());
+  },
   onStatusUpdate: (callback) => {
     ipcRenderer.on('status-update', (event, data) => callback(data));
   },

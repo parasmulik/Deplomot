@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build": "electron-builder build --win",
+    "build": "node build-scripts/obfuscate.js && electron-builder build --win && node build-scripts/restore.js",
     "build:dir": "electron-builder build --win --dir"
   },
   "author": "Deplomot",
@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "electron": "^28.1.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "javascript-obfuscator": "^5.3.0"
   }
 }

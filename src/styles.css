@@ -387,6 +387,17 @@ html {
   color: #f5d07a;
 }
 
+.btn-main-text {
+  display: block;
+}
+
+.btn-sub-text {
+  display: block;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
 #btn-download-zip {
   border-color: rgba(212, 168, 67, 0.5);
   color: #d4a843;
@@ -1587,6 +1598,11 @@ html {
   font-size: 11px;
   color: #888888;
   word-break: break-all;
+}
+
+.toast.warning {
+  border-color: #f59e0b;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
 }
 
 @keyframes toastSlideIn {

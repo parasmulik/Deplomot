@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
     consoleContent.innerHTML = '';
   }
 
-  function showToast(title, path, showOpenButton = false) {
+  function showToast(title, path, showOpenButton = false, isWarning = false) {
     toastTitle.textContent = title;
     toastPath.textContent = path;
     
@@ -281,6 +281,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.electronAPI.openExternal(path);
       };
       toastPath.parentElement.appendChild(openBtn);
+    }
+    
+    // Handle warning styling
+    if (isWarning) {
+      toast.classList.add('warning');
+    } else {
+      toast.classList.remove('warning');
     }
     
     toast.classList.remove('hidden', 'hiding');
@@ -488,6 +495,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success && result.url) {
           addConsoleLog(`Deployed successfully! ${result.url}`, 'success');
           showToast('Deployed to Netlify!', result.url, true);
+        } else if (result.error && result.error.includes('Node.js apps cannot be deployed')) {
+          // Special handling for Node.js apps - show friendly message
+          addConsoleLog('Node.js apps can\'t be deployed permanently yet. Use Share Live for a temporary URL!', 'warning');
+          showToast('Node.js apps can\'t be deployed permanently yet. Use Share Live for a temporary URL!', '', false, true);
         } else {
           addConsoleLog(`Deploy failed: ${result.error}`, 'error');
         }
@@ -505,23 +516,23 @@ document.addEventListener('DOMContentLoaded', () => {
        addConsoleLog('No preview URL available. Please run your code first.', 'error');
        return;
      }
-     
-     if (isSharing) {
-       // Stop tunnel
-       await window.electronAPI.stopTunnel();
-       btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
-       btnShare.title = 'Share via Cloudflare Tunnel';
-        addConsoleLog('Tunnel stopped.', 'warning');
-        isSharing = false;
-        tunnelActive = false;
-        return;
-     }
-     
-     // Start tunnel
-     isSharing = true;
-     btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 9a4 4 0 004-4 4 4 0 014 4h2a6 6 0 00-6-6 6 6 0 00-6 6zm10 0a4 4 0 01-4 4 4 4 0 00-4-4h-2a6 6 0 016-6 6 6 0 016 6z"/></svg> ⏹ Stop Sharing';
-     btnShare.title = 'Stop sharing';
-     addConsoleLog('Creating public URL...', 'info');
+      
+      if (isSharing) {
+        // Stop tunnel
+        await window.electronAPI.stopTunnel();
+        btnShare.innerHTML = '<span class="btn-main-text">🌐 Share Live</span><span class="btn-sub-text">Temporary link · any app</span>';
+        btnShare.title = 'Share via Cloudflare Tunnel';
+         addConsoleLog('Tunnel stopped.', 'warning');
+         isSharing = false;
+         tunnelActive = false;
+         return;
+      }
+      
+      // Start tunnel
+      isSharing = true;
+      btnShare.innerHTML = '<span class="btn-main-text">⏹ Stop Sharing</span>';
+      btnShare.title = 'Stop sharing';
+      addConsoleLog('Creating public URL...', 'info');
      
      try {
        const result = await window.electronAPI.startTunnel();
@@ -556,21 +567,21 @@ document.addEventListener('DOMContentLoaded', () => {
          });
          
          showToast('Public URL created!', result.url);
-        } else {
-          addConsoleLog(`Tunnel failed: ${result.error || 'Unknown error'}`, 'error');
-          isSharing = false;
-          tunnelActive = false;
-          btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 002-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
-          btnShare.title = 'Share via Cloudflare Tunnel';
-        }
-      } catch (error) {
-        addConsoleLog(`Tunnel error: ${error.message}`, 'error');
-        isSharing = false;
-        tunnelActive = false;
-        btnShare.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2.5a2.5 2.5 0 11-5 0v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 002-2h-3V2.5z"/><path d="M9 10h2V7H9v3zm-4 0h2V7H5v3z"/></svg> 🌐 Share';
-       btnShare.title = 'Share via Cloudflare Tunnel';
-     }
-   });
+         } else {
+           addConsoleLog(`Tunnel failed: ${result.error || 'Unknown error'}`, 'error');
+           isSharing = false;
+           tunnelActive = false;
+           btnShare.innerHTML = '<span class="btn-main-text">🌐 Share Live</span><span class="btn-sub-text">Temporary link · any app</span>';
+           btnShare.title = 'Share via Cloudflare Tunnel';
+         }
+       } catch (error) {
+         addConsoleLog(`Tunnel error: ${error.message}`, 'error');
+         isSharing = false;
+         tunnelActive = false;
+         btnShare.innerHTML = '<span class="btn-main-text">🌐 Share Live</span><span class="btn-sub-text">Temporary link · any app</span>';
+        btnShare.title = 'Share via Cloudflare Tunnel';
+      }
+    });
 
   // Settings (About)
   btnSettings.addEventListener('click', async () => {
